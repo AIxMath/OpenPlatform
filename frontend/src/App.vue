@@ -157,7 +157,7 @@ const navigateTo = (path: string) => {
       </div>
     </header>
 
-    <main class="pt-20 px-4">
+    <main class="pt-20 px-0">
       <router-view />
     </main>
   </div>
