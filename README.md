@@ -1,2 +1,3 @@
 # OpenPlatform
-The website of AIxMath community.
+
+The website of AI x Math community.
