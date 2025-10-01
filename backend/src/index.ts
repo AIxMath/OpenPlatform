@@ -26,7 +26,7 @@ const server = createHTTPServer({
 });
 
 // 启动服务器
-// await initializeDatabase();
+await initializeDatabase();
 
 server.listen(3000);
 console.log('Server listening on http://localhost:3000');
