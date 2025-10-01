@@ -1,4 +1,20 @@
 import { defineConfig } from 'vitepress'
+import UnoCSS from 'unocss/vite'
 
-// https://vitepress.vuejs.org/config/app-configs
-export default defineConfig({})
+export default defineConfig({
+  title: 'AI x Math',
+  themeConfig: {
+    siteTitle: 'AI x Math',
+    logo: '/logo.png',
+    nav: [
+    ],
+  },
+  vite: {
+    plugins: [
+      UnoCSS({
+        inspector: false,
+      }) as any,
+    ],
+  },
+  appearance: false,
+})

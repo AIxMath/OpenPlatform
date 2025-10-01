@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { shikiToMonaco } from '@shikijs/monaco'
 import * as monaco from 'monaco-editor-core'
 import { createHighlighter } from 'shiki'
@@ -40,6 +40,11 @@ onMounted(async () => {
     if (newContent !== editor.getValue()) {
       editor.setValue(newContent)
     }
+  })
+
+  onUnmounted(() => {
+    editor.dispose()
+    highlighter.dispose()
   })
 })
 </script>

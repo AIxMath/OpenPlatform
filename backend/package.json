@@ -1,7 +1,7 @@
 {
   "name": "@open-platform/backend",
-  "private": true,
   "type": "module",
+  "private": true,
   "exports": {
     "./router": {
       "types": "./src/router.ts"
@@ -14,10 +14,12 @@
   "dependencies": {
     "@trpc/server": "^11.6.0",
     "bcryptjs": "^3.0.2",
+    "mime-types": "^2.1.35",
     "mongodb": "^6.20.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^20.14.0",
     "tsx": "^4.15.0",
     "zod": "^3.25.76"
