@@ -79,6 +79,24 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
 }
 
 const server = http.createServer((req, res) => {
+  // CORS headers
+  const origin = req.headers.origin
+  const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173']
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+  }
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204)
+    res.end()
+    return
+  }
+  
   const url = req.url || '/'
   if (url.startsWith('/api')) {
     // Strip /api prefix for tRPC handling to keep paths consistent

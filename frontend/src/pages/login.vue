@@ -112,8 +112,11 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { trpc } from '../trpc'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const form = reactive({
   usernameOrEmail: '',
@@ -158,15 +161,18 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    // TODO: 实现登录逻辑
-    console.log('登录', form)
+    const response = await trpc.login.mutate({
+      usernameOrEmail: form.usernameOrEmail,
+      password: form.password,
+    })
     
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 保存 token 和用户信息
+    authStore.setAuth(response.token, response.user as any)
     
-    // 登录成功后跳转
-    // router.push('/')
+    // 登录成功后跳转到首页
+    router.push('/')
   } catch (error: any) {
+    console.error('登录失败:', error)
     errorMessage.value = error.message || '登录失败，请检查用户名和密码'
   } finally {
     isLoading.value = false

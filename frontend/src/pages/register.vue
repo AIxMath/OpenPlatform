@@ -187,6 +187,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { trpc } from '../trpc'
 
 const router = useRouter()
 
@@ -342,19 +343,16 @@ const handleRegister = async () => {
   errorMessage.value = ''
 
   try {
-    // TODO: 实现注册逻辑
-    console.log('注册', {
+    await trpc.register.mutate({
       username: form.username,
       email: form.email,
       password: form.password,
     })
     
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
     // 注册成功后跳转到登录页
-    // router.push('/login')
+    router.push('/login')
   } catch (error: any) {
+    console.error('注册失败:', error)
     errorMessage.value = error.message || '注册失败，请稍后重试'
   } finally {
     isLoading.value = false
