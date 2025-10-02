@@ -202,7 +202,6 @@ const md = new MarkdownIt({
 
 const route = useRoute()
 const documentId = ref<string>('')
-const title = ref('')
 const content = ref('Loading...')
 const isLoading = ref(true)
 const editorRef = ref<any>(null)
@@ -276,10 +275,7 @@ const loadDocument = async (id: string) => {
   // 示例：模拟异步加载
   await new Promise(resolve => setTimeout(resolve, 5000))
   
-  return {
-    title: '',
-    content: ''
-  }
+  return ''
 }
 
 // 保存函数（留空供后续实现）
@@ -292,7 +288,6 @@ const save = async () => {
   // TODO: 实现保存逻辑
   console.log('保存', { 
     id: documentId.value,
-    title: title.value, 
     content: content.value 
   })
 }
@@ -337,8 +332,7 @@ const initDocument = async () => {
   
   try {
     const doc = await loadDocument(id)
-    title.value = doc.title || ''
-    content.value = doc.content || ''
+    content.value = doc || ''
   } catch (error) {
     console.error('加载文档失败', error)
     content.value = '加载文档失败，请重试'

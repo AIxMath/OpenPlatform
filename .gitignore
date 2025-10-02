@@ -2,3 +2,5 @@ node_modules
 **/.vitepress/dist
 **/.vitepress/cache
 .eslintcache
+
+backend/uploads
