@@ -35,10 +35,40 @@ const trpcHandler = createHTTPHandler({
 // Static files directory (dist). By default relative to backend working directory.
 // If you build frontend in ../frontend/dist you can copy or symlink it to ./dist.
 const staticDir = path.resolve(process.cwd(), 'dist')
+const uploadDir = path.resolve(process.env.UPLOAD_DIR || './uploads')
 
 function getContentType(filePath: string): string {
   const ct = mimeContentType(path.basename(filePath)) || mimeLookup(filePath) || 'application/octet-stream'
   return typeof ct === 'string' ? ct : 'application/octet-stream'
+}
+
+function serveUploadedFile(req: http.IncomingMessage, res: http.ServerResponse) {
+  const url = req.url || '/'
+  // Extract filename from /files/filename
+  const filename = url.replace(/^\/files\//, '')
+  
+  if (!filename || filename.includes('..') || filename.includes('/')) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('Invalid filename')
+    return
+  }
+
+  const filePath = path.join(uploadDir, filename)
+
+  // Ensure file is inside uploadDir
+  if (!filePath.startsWith(uploadDir)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('Forbidden')
+    return
+  }
+
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    res.writeHead(200, { 'Content-Type': getContentType(filePath) })
+    fs.createReadStream(filePath).pipe(res)
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('File not found')
+  }
 }
 
 function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
@@ -102,6 +132,15 @@ const server = http.createServer((req, res) => {
     // Strip /api prefix for tRPC handling to keep paths consistent
     req.url = url.substring(4) || '/'
     return trpcHandler(req, res)
+  }
+  if (url.startsWith('/files/')) {
+    // Serve uploaded files
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      return serveUploadedFile(req, res)
+    }
+    res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('Method Not Allowed')
+    return
   }
   if (req.method === 'GET' || req.method === 'HEAD') {
     return serveStatic(req, res)

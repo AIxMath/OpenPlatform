@@ -144,17 +144,34 @@
         <div class="i-material-symbols:horizontal-rule w-5 h-5" />
       </button>
       
-      <div class="flex-1"></div>
+      <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
       <!-- 保存按钮 -->
       <button 
-        :disabled="isLoading"
+        :disabled="isLoading || isSaving"
         @click="handleSave"
         class="toolbar-btn"
-        title="保存"
+        :title="isSaving ? '保存中...' : '保存'"
       >
-        <div class="i-material-symbols:save w-5 h-5" />
+        <div 
+          v-if="isSaving"
+          class="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
+        />
+        <div v-else class="i-material-symbols:save w-5 h-5" />
       </button>
+      
+      <div class="flex-1"></div>
+      
+      <!-- 保存提示消息 -->
+      <transition name="fade">
+        <div 
+          v-if="saveMessage"
+          class="px-3 py-1 bg-gray-800 text-white text-sm rounded-md flex items-center gap-2"
+        >
+          <div class="i-material-symbols:check-circle w-4 h-4" />
+          <span>{{ saveMessage }}</span>
+        </div>
+      </transition>
     </header>
 
     <!-- 编辑器容器 - 左右分栏 -->
@@ -188,9 +205,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Editor from '../components/Editor.vue'
 import MarkdownIt from 'markdown-it'
+import { trpc } from '../trpc'
+import { useAuthStore } from '../stores/auth'
 
 // 初始化 markdown-it
 const md = new MarkdownIt({
@@ -201,16 +220,37 @@ const md = new MarkdownIt({
 })
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 const documentId = ref<string>('')
 const content = ref('Loading...')
 const isLoading = ref(true)
+const isSaving = ref(false)
+const saveMessage = ref('')
 const editorRef = ref<any>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 let autoSaveTimer: number | null = null
+let saveMessageTimer: number | null = null
 
 // 计算属性：实时渲染 markdown
 const renderedMarkdown = computed(() => {
   return md.render(content.value)
 })
+
+// 显示提示消息
+const showSaveMessage = (message: string, duration: number = 3000) => {
+  saveMessage.value = message
+  
+  // 清除之前的定时器
+  if (saveMessageTimer) {
+    clearTimeout(saveMessageTimer)
+  }
+  
+  // 设置新的定时器自动隐藏消息
+  saveMessageTimer = window.setTimeout(() => {
+    saveMessage.value = ''
+  }, duration)
+}
 
 // 工具栏插入函数
 const insertHeading = (level: number) => {
@@ -247,7 +287,68 @@ const insertLink = () => {
 }
 
 const insertImage = () => {
-  editorRef.value?.insertText('![图片描述](图片地址)', -1)
+  // 触发文件选择
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file) {
+      await handleImageUpload(file)
+    }
+  }
+  input.click()
+}
+
+// 处理图片上传
+const handleImageUpload = async (file: File) => {
+  if (isLoading.value) return
+
+  // 验证文件大小 (10MB)
+  if (file.size > 10 * 1024 * 1024) {
+    showSaveMessage('文件大小不能超过 10MB')
+    return
+  }
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    showSaveMessage('只能上传图片文件')
+    return
+  }
+
+  try {
+    showSaveMessage('正在上传图片...')
+    
+    // 读取文件为 Base64
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // 移除 data:image/xxx;base64, 前缀
+        const base64Data = result.split(',')[1]
+        resolve(base64Data)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+    // 上传到服务器
+    const response = await trpc.uploadFile.mutate({
+      filename: file.name,
+      mimetype: file.type,
+      size: file.size,
+      data: base64,
+    })
+
+    // 插入 Markdown 图片语法
+    const imageUrl = `http://localhost:3000${response.data.url}`
+    // editorRef.value?.insertText(`![${file.name}](${imageUrl})`)
+    
+    showSaveMessage('图片上传成功')
+  } catch (error: any) {
+    console.error('上传图片失败:', error)
+    showSaveMessage(error.message || '上传失败，请稍后重试')
+  }
 }
 
 const insertTable = () => {
@@ -267,38 +368,71 @@ const insertDivider = () => {
   editorRef.value?.insertText('\n---\n')
 }
 
-// 加载文档内容（留空供后续实现）
+// 加载文档内容
 const loadDocument = async (id: string) => {
-  // TODO: 实现加载文档逻辑
-  console.log('加载文档', id)
-  
-  // 示例：模拟异步加载
-  await new Promise(resolve => setTimeout(resolve, 5000))
-  
-  return ''
+  try {
+    const blog = await trpc.getBlogById.query({ blogId: id })
+    return blog.content
+  } catch (error: any) {
+    console.error('加载文档失败:', error)
+    throw new Error(error.message || '加载文档失败')
+  }
 }
 
-// 保存函数（留空供后续实现）
+// 保存函数
 const save = async () => {
-  if (isLoading.value) {
-    console.log('文档加载中，跳过保存')
+  if (isLoading.value || isSaving.value) {
     return
   }
   
-  // TODO: 实现保存逻辑
-  console.log('保存', { 
-    id: documentId.value,
-    content: content.value 
-  })
+  if (!documentId.value) {
+    console.error('文档ID不存在')
+    return
+  }
+
+  isSaving.value = true
+
+  try {
+    await trpc.updateBlog.mutate({
+      blogId: documentId.value,
+      content: content.value,
+    })
+    
+    console.log('自动保存成功')
+  } catch (error: any) {
+    console.error('保存失败:', error)
+    // 自动保存失败时不显示错误提示，避免打扰用户
+  } finally {
+    isSaving.value = false
+  }
 }
 
 // 手动保存
 const handleSave = async () => {
-  if (isLoading.value) {
-    console.log('文档加载中，无法保存')
+  if (isLoading.value || isSaving.value) {
     return
   }
-  await save()
+
+  if (!documentId.value) {
+    showSaveMessage('文档ID不存在')
+    return
+  }
+
+  isSaving.value = true
+
+  try {
+    await trpc.updateBlog.mutate({
+      blogId: documentId.value,
+      content: content.value,
+    })
+    
+    showSaveMessage('保存成功！')
+  } catch (error: any) {
+    console.error('保存失败:', error)
+    showSaveMessage(error.message || '保存失败，请稍后重试')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 // 定时自动保存（每30秒）
@@ -317,6 +451,12 @@ const stopAutoSave = () => {
 
 // 初始化加载文档
 const initDocument = async () => {
+  // 检查是否登录
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
+
   const id = route.params.id as string
   
   if (!id) {
@@ -333,9 +473,10 @@ const initDocument = async () => {
   try {
     const doc = await loadDocument(id)
     content.value = doc || ''
-  } catch (error) {
+  } catch (error: any) {
     console.error('加载文档失败', error)
     content.value = '加载文档失败，请重试'
+    showSaveMessage(error.message || '加载文档失败')
   } finally {
     isLoading.value = false
   }
@@ -344,13 +485,16 @@ const initDocument = async () => {
 onMounted(async () => {
   await initDocument()
   // 只在文档加载完成后才启动自动保存
-  if (!isLoading.value) {
+  if (!isLoading.value && documentId.value) {
     startAutoSave()
   }
 })
 
 onUnmounted(() => {
   stopAutoSave()
+  if (saveMessageTimer) {
+    clearTimeout(saveMessageTimer)
+  }
 })
 </script>
 
@@ -538,5 +682,16 @@ onUnmounted(() => {
   border-top: 2px solid #e5e7eb;
   margin-top: 2rem;
   margin-bottom: 2rem;
+}
+
+/* 淡入淡出过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
