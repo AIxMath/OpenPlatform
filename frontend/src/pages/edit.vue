@@ -4,165 +4,144 @@
     <header class="flex-shrink-0 flex items-center gap-1 px-4 py-2 border border-gray-200">
       <!-- 标题类 -->
       <button 
+        :disabled="isLoading"
         @click="insertHeading(1)" 
         class="toolbar-btn"
         title="一级标题"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <text x="4" y="18" font-size="16" font-weight="bold" fill="currentColor">H1</text>
-        </svg>
+        <div class="i-material-symbols:format-h1 w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertHeading(2)" 
         class="toolbar-btn"
         title="二级标题"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <text x="4" y="18" font-size="16" font-weight="bold" fill="currentColor">H2</text>
-        </svg>
+        <div class="i-material-symbols:format-h2 w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertHeading(3)" 
         class="toolbar-btn"
         title="三级标题"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <text x="4" y="18" font-size="16" font-weight="bold" fill="currentColor">H3</text>
-        </svg>
+        <div class="i-material-symbols:format-h3 w-5 h-5" />
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
       <!-- 文本格式 -->
       <button 
+        :disabled="isLoading"
         @click="insertBold" 
         class="toolbar-btn"
         title="加粗"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 4h6a4 4 0 014 4 4 4 0 01-4 4H6V4z M6 12h7a4 4 0 014 4 4 4 0 01-4 4H6v-8z"></path>
-        </svg>
+        <div class="i-material-symbols:format-bold w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertItalic" 
         class="toolbar-btn"
         title="斜体"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4h6M8 20h6M13 4L11 20"></path>
-        </svg>
+        <div class="i-material-symbols:format-italic w-5 h-5" />
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
       <!-- 列表 -->
       <button 
+        :disabled="isLoading"
         @click="insertUnorderedList" 
         class="toolbar-btn"
         title="无序列表"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-          <circle cx="4" cy="6" r="1.5" fill="currentColor"></circle>
-          <circle cx="4" cy="12" r="1.5" fill="currentColor"></circle>
-          <circle cx="4" cy="18" r="1.5" fill="currentColor"></circle>
-        </svg>
+        <div class="i-material-symbols:format-list-bulleted w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertOrderedList" 
         class="toolbar-btn"
         title="有序列表"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13"></path>
-          <text x="2" y="9" font-size="10" fill="currentColor">1.</text>
-          <text x="2" y="15" font-size="10" fill="currentColor">2.</text>
-          <text x="2" y="21" font-size="10" fill="currentColor">3.</text>
-        </svg>
+        <div class="i-material-symbols:format-list-numbered w-5 h-5" />
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
       <!-- 引用和代码 -->
       <button 
+        :disabled="isLoading"
         @click="insertQuote" 
         class="toolbar-btn"
         title="引用"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M3 12h18M3 18h18"></path>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M3 6v12"></path>
-        </svg>
+        <div class="i-material-symbols:format-quote w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertCode" 
         class="toolbar-btn"
         title="代码块"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-        </svg>
+        <div class="i-material-symbols:code w-5 h-5" />
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
       <!-- 链接和图片 -->
       <button 
+        :disabled="isLoading"
         @click="insertLink" 
         class="toolbar-btn"
         title="链接"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-        </svg>
+        <div class="i-material-symbols:link w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertImage" 
         class="toolbar-btn"
         title="图片"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
+        <div class="i-material-symbols:image w-5 h-5" />
       </button>
       
       <div class="w-px h-6 bg-gray-300 mx-1"></div>
       
       <!-- 表格和公式 -->
       <button 
+        :disabled="isLoading"
         @click="insertTable" 
         class="toolbar-btn"
         title="表格"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-        </svg>
+        <div class="i-material-symbols:table w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertFormula" 
         class="toolbar-btn"
         title="公式"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <text x="2" y="16" font-size="14" font-style="italic" fill="currentColor">𝑓(𝑥)</text>
-        </svg>
+        <div class="i-material-symbols:functions w-5 h-5" />
       </button>
       
       <button 
+        :disabled="isLoading"
         @click="insertDivider" 
         class="toolbar-btn"
         title="分割线"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"></path>
-        </svg>
+        <div class="i-material-symbols:horizontal-rule w-5 h-5" />
       </button>
       
       <div class="flex-1"></div>
@@ -174,9 +153,7 @@
         class="toolbar-btn"
         title="保存"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-        </svg>
+        <div class="i-material-symbols:save w-5 h-5" />
       </button>
     </header>
 
@@ -198,7 +175,7 @@
       <!-- 加载遮罩层 -->
       <div 
         v-if="isLoading"
-        class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10 pointer-events-none"
+        class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10"
       >
         <div class="text-center">
           <div class="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
