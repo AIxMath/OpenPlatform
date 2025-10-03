@@ -141,7 +141,7 @@ async function handleImageUpload(file: File) {
 
     // 插入 Markdown 图片语法
     const imageUrl = `http://localhost:3000${response.data.url}`
-    // editorRef.value?.insertText(`![${file.name}](${imageUrl})`)
+    editorRef.value?.insertText(`![${file.name}](${imageUrl})`)
 
     showSaveMessage('图片上传成功')
   }
