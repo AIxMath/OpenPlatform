@@ -6,7 +6,7 @@ export default antfu({
   jsonc: true,
   typescript: true,
 }, {
-  files: ['backend/**'],
+  files: ['**'],
   rules: {
     'no-console': 'off',
   },

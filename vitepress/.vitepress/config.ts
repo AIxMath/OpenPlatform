@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitepress'
 import UnoCSS from 'unocss/vite'
+import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'AI x Math',

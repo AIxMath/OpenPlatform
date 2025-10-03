@@ -1,9 +1,9 @@
 import {
   defineConfig,
-  presetWind4,
+  presetAttributify,
   presetIcons,
   presetTypography,
-  presetAttributify,
+  presetWind4,
   transformerDirectives,
 } from 'unocss'
 

@@ -1,5 +1,5 @@
-import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
 export interface User {
   _id: string
@@ -47,4 +47,3 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
   }
 })
-

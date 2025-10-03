@@ -5,7 +5,6 @@ import 'virtual:uno.css'
 import '../../src/style.css'
 
 export default {
-  // @ts-expect-error ???
   extends: DefaultTheme,
   Layout,
   enhanceApp({ app, router, siteData }) {

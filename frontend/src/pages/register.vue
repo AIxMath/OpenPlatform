@@ -1,15 +1,202 @@
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { trpc } from '../trpc'
+
+const router = useRouter()
+
+const form = reactive({
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+})
+
+const errors = reactive({
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+})
+
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
+const passwordStrength = ref(0)
+
+// 验证用户名
+function validateUsername() {
+  errors.username = ''
+
+  if (!form.username) {
+    errors.username = '请输入用户名'
+    return false
+  }
+
+  if (form.username.length < 3) {
+    errors.username = '用户名至少需要3个字符'
+    return false
+  }
+
+  if (form.username.length > 20) {
+    errors.username = '用户名最多20个字符'
+    return false
+  }
+
+  if (!/^\w+$/.test(form.username)) {
+    errors.username = '用户名只能包含字母、数字和下划线'
+    return false
+  }
+
+  return true
+}
+
+// 验证邮箱
+function validateEmail() {
+  errors.email = ''
+
+  if (!form.email) {
+    errors.email = '请输入邮箱'
+    return false
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
+  if (!emailRegex.test(form.email)) {
+    errors.email = '请输入有效的邮箱地址'
+    return false
+  }
+
+  return true
+}
+
+// 验证密码
+function validatePassword() {
+  errors.password = ''
+
+  if (!form.password) {
+    errors.password = '请输入密码'
+    return false
+  }
+
+  if (form.password.length < 8) {
+    errors.password = '密码至少需要8个字符'
+    return false
+  }
+
+  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password)) {
+    errors.password = '密码必须包含至少一个大写字母、一个小写字母和一个数字'
+    return false
+  }
+
+  return true
+}
+
+// 验证确认密码
+function validateConfirmPassword() {
+  errors.confirmPassword = ''
+
+  if (!form.confirmPassword) {
+    errors.confirmPassword = '请再次输入密码'
+    return false
+  }
+
+  if (form.password !== form.confirmPassword) {
+    errors.confirmPassword = '两次输入的密码不一致'
+    return false
+  }
+
+  return true
+}
+
+// 更新密码强度
+function updatePasswordStrength() {
+  const password = form.password
+  let strength = 0
+
+  if (password.length >= 8)
+    strength++
+  if (password.length >= 12)
+    strength++
+  if (/(?=.*[a-z])(?=.*[A-Z])/.test(password))
+    strength++
+  if (/(?=.*\d)/.test(password))
+    strength++
+  if (/(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password))
+    strength++
+
+  passwordStrength.value = Math.min(strength, 4)
+}
+
+// 获取密码强度颜色
+function getStrengthColor() {
+  const colors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-green-400']
+  return colors[passwordStrength.value - 1] || 'bg-gray-200'
+}
+
+// 获取密码强度文本
+function getStrengthText() {
+  const texts = ['弱', '中等', '良好', '强']
+  return texts[passwordStrength.value - 1] || '太弱'
+}
+
+// 表单验证
+function validateForm() {
+  errorMessage.value = ''
+
+  const isUsernameValid = validateUsername()
+  const isEmailValid = validateEmail()
+  const isPasswordValid = validatePassword()
+  const isConfirmPasswordValid = validateConfirmPassword()
+
+  return isUsernameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid
+}
+
+// 处理注册
+async function handleRegister() {
+  if (!validateForm()) {
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    await trpc.register.mutate({
+      username: form.username,
+      email: form.email,
+      password: form.password,
+    })
+
+    // 注册成功后跳转到登录页
+    router.push('/login')
+  }
+  catch (error: any) {
+    console.error('注册失败:', error)
+    errorMessage.value = error.message || '注册失败，请稍后重试'
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+</script>
+
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
     <div class="w-full max-w-md">
       <!-- 标题区域 -->
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-light text-gray-800 mb-2">注册</h1>
-        <p class="text-sm text-gray-500">创建您的账户，开始使用</p>
+        <h1 class="text-3xl font-light text-gray-800 mb-2">
+          注册
+        </h1>
+        <p class="text-sm text-gray-500">
+          创建您的账户，开始使用
+        </p>
       </div>
 
       <!-- 注册表单 -->
       <div class="bg-white border border-gray-200 rounded-lg p-8">
-        <form @submit.prevent="handleRegister" class="space-y-5">
+        <form class="space-y-5" @submit.prevent="handleRegister">
           <!-- 用户名输入 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -26,7 +213,7 @@
                 class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                 :disabled="isLoading"
                 @blur="validateUsername"
-              />
+              >
             </div>
             <p v-if="errors.username" class="mt-1 text-sm text-red-500">
               {{ errors.username }}
@@ -49,7 +236,7 @@
                 class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                 :disabled="isLoading"
                 @blur="validateEmail"
-              />
+              >
             </div>
             <p v-if="errors.email" class="mt-1 text-sm text-red-500">
               {{ errors.email }}
@@ -73,15 +260,15 @@
                 :disabled="isLoading"
                 @input="updatePasswordStrength"
                 @blur="validatePassword"
-              />
+              >
               <button
                 type="button"
-                @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 :disabled="isLoading"
+                @click="showPassword = !showPassword"
               >
-                <div 
-                  :class="showPassword ? 'i-material-symbols:visibility-off-outline' : 'i-material-symbols:visibility-outline'" 
+                <div
+                  :class="showPassword ? 'i-material-symbols:visibility-off-outline' : 'i-material-symbols:visibility-outline'"
                   class="w-5 h-5"
                 />
               </button>
@@ -89,12 +276,12 @@
             <p v-if="errors.password" class="mt-1 text-sm text-red-500">
               {{ errors.password }}
             </p>
-            
+
             <!-- 密码强度指示器 -->
             <div v-if="form.password" class="mt-2">
               <div class="flex gap-1 mb-1">
-                <div 
-                  v-for="i in 4" 
+                <div
+                  v-for="i in 4"
                   :key="i"
                   class="h-1 flex-1 rounded-full transition-colors"
                   :class="i <= passwordStrength ? getStrengthColor() : 'bg-gray-200'"
@@ -122,15 +309,15 @@
                 class="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                 :disabled="isLoading"
                 @blur="validateConfirmPassword"
-              />
+              >
               <button
                 type="button"
-                @click="showConfirmPassword = !showConfirmPassword"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 :disabled="isLoading"
+                @click="showConfirmPassword = !showConfirmPassword"
               >
-                <div 
-                  :class="showConfirmPassword ? 'i-material-symbols:visibility-off-outline' : 'i-material-symbols:visibility-outline'" 
+                <div
+                  :class="showConfirmPassword ? 'i-material-symbols:visibility-off-outline' : 'i-material-symbols:visibility-outline'"
                   class="w-5 h-5"
                 />
               </button>
@@ -142,7 +329,9 @@
 
           <!-- 错误提示 -->
           <div v-if="errorMessage" class="p-3 bg-red-50 border border-red-200 rounded-md">
-            <p class="text-sm text-red-600">{{ errorMessage }}</p>
+            <p class="text-sm text-red-600">
+              {{ errorMessage }}
+            </p>
           </div>
 
           <!-- 注册按钮 -->
@@ -159,7 +348,7 @@
         <!-- 分割线 -->
         <div class="relative my-6">
           <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
+            <div class="w-full border-t border-gray-200" />
           </div>
           <div class="relative flex justify-center text-sm">
             <span class="px-4 bg-white text-gray-500">或</span>
@@ -170,8 +359,8 @@
         <div class="text-center">
           <p class="text-sm text-gray-600">
             已有账户？
-            <router-link 
-              to="/login" 
+            <router-link
+              to="/login"
               class="text-gray-800 font-medium hover:underline inline-flex items-center gap-1"
             >
               立即登录
@@ -184,182 +373,6 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { trpc } from '../trpc'
-
-const router = useRouter()
-
-const form = reactive({
-  username: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-})
-
-const errors = reactive({
-  username: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-})
-
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const isLoading = ref(false)
-const errorMessage = ref('')
-const passwordStrength = ref(0)
-
-// 验证用户名
-const validateUsername = () => {
-  errors.username = ''
-  
-  if (!form.username) {
-    errors.username = '请输入用户名'
-    return false
-  }
-  
-  if (form.username.length < 3) {
-    errors.username = '用户名至少需要3个字符'
-    return false
-  }
-  
-  if (form.username.length > 20) {
-    errors.username = '用户名最多20个字符'
-    return false
-  }
-  
-  if (!/^\w+$/.test(form.username)) {
-    errors.username = '用户名只能包含字母、数字和下划线'
-    return false
-  }
-  
-  return true
-}
-
-// 验证邮箱
-const validateEmail = () => {
-  errors.email = ''
-  
-  if (!form.email) {
-    errors.email = '请输入邮箱'
-    return false
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(form.email)) {
-    errors.email = '请输入有效的邮箱地址'
-    return false
-  }
-  
-  return true
-}
-
-// 验证密码
-const validatePassword = () => {
-  errors.password = ''
-  
-  if (!form.password) {
-    errors.password = '请输入密码'
-    return false
-  }
-  
-  if (form.password.length < 8) {
-    errors.password = '密码至少需要8个字符'
-    return false
-  }
-  
-  if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password)) {
-    errors.password = '密码必须包含至少一个大写字母、一个小写字母和一个数字'
-    return false
-  }
-  
-  return true
-}
-
-// 验证确认密码
-const validateConfirmPassword = () => {
-  errors.confirmPassword = ''
-  
-  if (!form.confirmPassword) {
-    errors.confirmPassword = '请再次输入密码'
-    return false
-  }
-  
-  if (form.password !== form.confirmPassword) {
-    errors.confirmPassword = '两次输入的密码不一致'
-    return false
-  }
-  
-  return true
-}
-
-// 更新密码强度
-const updatePasswordStrength = () => {
-  const password = form.password
-  let strength = 0
-  
-  if (password.length >= 8) strength++
-  if (password.length >= 12) strength++
-  if (/(?=.*[a-z])(?=.*[A-Z])/.test(password)) strength++
-  if (/(?=.*\d)/.test(password)) strength++
-  if (/(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password)) strength++
-  
-  passwordStrength.value = Math.min(strength, 4)
-}
-
-// 获取密码强度颜色
-const getStrengthColor = () => {
-  const colors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-green-400']
-  return colors[passwordStrength.value - 1] || 'bg-gray-200'
-}
-
-// 获取密码强度文本
-const getStrengthText = () => {
-  const texts = ['弱', '中等', '良好', '强']
-  return texts[passwordStrength.value - 1] || '太弱'
-}
-
-// 表单验证
-const validateForm = () => {
-  errorMessage.value = ''
-  
-  const isUsernameValid = validateUsername()
-  const isEmailValid = validateEmail()
-  const isPasswordValid = validatePassword()
-  const isConfirmPasswordValid = validateConfirmPassword()
-  
-  return isUsernameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid
-}
-
-// 处理注册
-const handleRegister = async () => {
-  if (!validateForm()) {
-    return
-  }
-
-  isLoading.value = true
-  errorMessage.value = ''
-
-  try {
-    await trpc.register.mutate({
-      username: form.username,
-      email: form.email,
-      password: form.password,
-    })
-    
-    // 注册成功后跳转到登录页
-    router.push('/login')
-  } catch (error: any) {
-    console.error('注册失败:', error)
-    errorMessage.value = error.message || '注册失败，请稍后重试'
-  } finally {
-    isLoading.value = false
-  }
-}
-</script>
-
 <style scoped>
 /* 输入框自动填充样式覆盖 */
 input:-webkit-autofill,
@@ -369,4 +382,3 @@ input:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 </style>
-

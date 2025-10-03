@@ -23,7 +23,7 @@ export async function createContext(opts: CreateHTTPContextOptions): Promise<Con
       const user = verifyToken(token)
       return { user }
     }
-    catch (error) {
+    catch {
       // Token无效，返回空上下文
       return {}
     }

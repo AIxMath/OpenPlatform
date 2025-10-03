@@ -1,15 +1,92 @@
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { trpc } from '../trpc'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const form = reactive({
+  usernameOrEmail: '',
+  password: '',
+})
+
+const errors = reactive({
+  usernameOrEmail: '',
+  password: '',
+})
+
+const showPassword = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+function validateForm() {
+  errors.usernameOrEmail = ''
+  errors.password = ''
+  errorMessage.value = ''
+
+  let isValid = true
+
+  if (!form.usernameOrEmail.trim()) {
+    errors.usernameOrEmail = '请输入用户名或邮箱'
+    isValid = false
+  }
+
+  if (!form.password) {
+    errors.password = '请输入密码'
+    isValid = false
+  }
+
+  return isValid
+}
+
+async function handleLogin() {
+  if (!validateForm()) {
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await trpc.login.mutate({
+      usernameOrEmail: form.usernameOrEmail,
+      password: form.password,
+    })
+
+    // 保存 token 和用户信息
+    authStore.setAuth(response.token, response.user as any)
+
+    // 登录成功后跳转到首页
+    router.push('/')
+  }
+  catch (error: any) {
+    console.error('登录失败:', error)
+    errorMessage.value = error.message || '登录失败，请检查用户名和密码'
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+</script>
+
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
     <div class="w-full max-w-md">
       <!-- 标题区域 -->
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-light text-gray-800 mb-2">登录</h1>
-        <p class="text-sm text-gray-500">欢迎回来，请登录您的账户</p>
+        <h1 class="text-3xl font-light text-gray-800 mb-2">
+          登录
+        </h1>
+        <p class="text-sm text-gray-500">
+          欢迎回来，请登录您的账户
+        </p>
       </div>
 
       <!-- 登录表单 -->
       <div class="bg-white border border-gray-200 rounded-lg p-8">
-        <form @submit.prevent="handleLogin" class="space-y-6">
+        <form class="space-y-6" @submit.prevent="handleLogin">
           <!-- 用户名/邮箱输入 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -25,7 +102,7 @@
                 placeholder="请输入用户名或邮箱"
                 class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                 :disabled="isLoading"
-              />
+              >
             </div>
             <p v-if="errors.usernameOrEmail" class="mt-1 text-sm text-red-500">
               {{ errors.usernameOrEmail }}
@@ -47,15 +124,15 @@
                 placeholder="请输入密码"
                 class="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                 :disabled="isLoading"
-              />
+              >
               <button
                 type="button"
-                @click="showPassword = !showPassword"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 :disabled="isLoading"
+                @click="showPassword = !showPassword"
               >
-                <div 
-                  :class="showPassword ? 'i-material-symbols:visibility-off-outline' : 'i-material-symbols:visibility-outline'" 
+                <div
+                  :class="showPassword ? 'i-material-symbols:visibility-off-outline' : 'i-material-symbols:visibility-outline'"
                   class="w-5 h-5"
                 />
               </button>
@@ -67,7 +144,9 @@
 
           <!-- 错误提示 -->
           <div v-if="errorMessage" class="p-3 bg-red-50 border border-red-200 rounded-md">
-            <p class="text-sm text-red-600">{{ errorMessage }}</p>
+            <p class="text-sm text-red-600">
+              {{ errorMessage }}
+            </p>
           </div>
 
           <!-- 登录按钮 -->
@@ -84,7 +163,7 @@
         <!-- 分割线 -->
         <div class="relative my-6">
           <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
+            <div class="w-full border-t border-gray-200" />
           </div>
           <div class="relative flex justify-center text-sm">
             <span class="px-4 bg-white text-gray-500">或</span>
@@ -95,8 +174,8 @@
         <div class="text-center">
           <p class="text-sm text-gray-600">
             还没有账户？
-            <router-link 
-              to="/register" 
+            <router-link
+              to="/register"
               class="text-gray-800 font-medium hover:underline inline-flex items-center gap-1"
             >
               立即注册
@@ -109,77 +188,6 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { trpc } from '../trpc'
-import { useAuthStore } from '../stores/auth'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const form = reactive({
-  usernameOrEmail: '',
-  password: '',
-})
-
-const errors = reactive({
-  usernameOrEmail: '',
-  password: '',
-})
-
-const showPassword = ref(false)
-const isLoading = ref(false)
-const errorMessage = ref('')
-
-const validateForm = () => {
-  errors.usernameOrEmail = ''
-  errors.password = ''
-  errorMessage.value = ''
-
-  let isValid = true
-
-  if (!form.usernameOrEmail.trim()) {
-    errors.usernameOrEmail = '请输入用户名或邮箱'
-    isValid = false
-  }
-
-  if (!form.password) {
-    errors.password = '请输入密码'
-    isValid = false
-  }
-
-  return isValid
-}
-
-const handleLogin = async () => {
-  if (!validateForm()) {
-    return
-  }
-
-  isLoading.value = true
-  errorMessage.value = ''
-
-  try {
-    const response = await trpc.login.mutate({
-      usernameOrEmail: form.usernameOrEmail,
-      password: form.password,
-    })
-    
-    // 保存 token 和用户信息
-    authStore.setAuth(response.token, response.user as any)
-    
-    // 登录成功后跳转到首页
-    router.push('/')
-  } catch (error: any) {
-    console.error('登录失败:', error)
-    errorMessage.value = error.message || '登录失败，请检查用户名和密码'
-  } finally {
-    isLoading.value = false
-  }
-}
-</script>
-
 <style scoped>
 /* 输入框自动填充样式覆盖 */
 input:-webkit-autofill,
@@ -189,4 +197,3 @@ input:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 </style>
-
