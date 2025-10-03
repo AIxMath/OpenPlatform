@@ -1,8 +1,10 @@
+import type { MarkdownOptions } from 'vitepress'
 import anchorPlugin from 'markdown-it-anchor'
 import { MarkdownItAsync } from 'markdown-it-async'
 import attrsPlugin from 'markdown-it-attrs'
 import mditCjkFriendly from 'markdown-it-cjk-friendly'
 import { full as emojiPlugin } from 'markdown-it-emoji'
+import { markdownOptions } from '../../.vitepress/markdownOptions'
 import { containerPlugin } from './containers'
 import { gitHubAlertsPlugin } from './githubAlerts'
 import { highlight as createHighlighter } from './highlight'
@@ -27,8 +29,7 @@ export function disposeMdItInstance() {
  * @experimental
  */
 export async function createMarkdownRenderer(
-  srcDir: string,
-  options: MarkdownOptions = {},
+  options: MarkdownOptions = markdownOptions,
   base = '/',
 ): Promise<MarkdownItAsync> {
   if (md)
@@ -47,16 +48,20 @@ export async function createMarkdownRenderer(
   md.use(restoreEntities)
 
   if (options.preConfig) {
+    // @ts-expect-error wtf
     await options.preConfig(md)
   }
 
-  const slugify = options.anchor?.slugify ?? defaultSlugify
+  // eslint-disable-next-line no-control-regex
+  const rControl = /[\u0000-\u001F]/g
+  const rSpecial = /[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g
+  const rCombining = /[\u0300-\u036F]/g
+  const slugify = str => str.normalize('NFKD').replace(rCombining, '').replace(rControl, '').replace(rSpecial, '-').replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '').replace(/^(\d)/, '_$1').toLowerCase()
 
   // custom plugins
   md.use(highlightLinePlugin)
     .use(preWrapperPlugin, {
       codeCopyButtonTitle,
-      languageLabel: options.languageLabel,
     })
     .use(containerPlugin, options.container)
     .use(imagePlugin, options.image)
@@ -151,12 +156,13 @@ export async function createMarkdownRenderer(
     }
   }
 
-  if (options.cjkFriendlyEmphasis !== false && options.cjkFriendly !== false) {
+  if (options.cjkFriendly !== false) {
     md.use(mditCjkFriendly)
   }
 
   // apply user config
   if (options.config) {
+    // @ts-expect-error wtf
     await options.config(md)
   }
 
