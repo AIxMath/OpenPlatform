@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
 import { useRouter } from 'vitepress/client'
+import { reactive, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 

@@ -7,6 +7,12 @@
     "build": "vitepress build",
     "serve": "vitepress serve"
   },
+  "dependencies": {
+    "@shikijs/monaco": "^3.13.0",
+    "markdown-it": "^14.1.0",
+    "monaco-editor-core": "^0.53.0",
+    "shiki": "^3.13.0"
+  },
   "devDependencies": {
     "@trpc/client": "^11.6.0",
     "@types/markdown-it": "^14.1.2",
@@ -16,11 +22,5 @@
     "vite-plugin-inspect": "^11.3.3",
     "vitepress": "^2.0.0-alpha.12",
     "vue": "^3.5.22"
-  },
-  "dependencies": {
-    "@shikijs/monaco": "^3.13.0",
-    "markdown-it": "^14.1.0",
-    "monaco-editor-core": "^0.53.0",
-    "shiki": "^3.13.0"
   }
 }

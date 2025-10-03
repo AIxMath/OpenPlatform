@@ -6,7 +6,6 @@ export default antfu({
   jsonc: true,
   typescript: true,
 }, {
-  files: ['**'],
   rules: {
     'no-console': 'off',
     'node/prefer-global/buffer': 'off',
