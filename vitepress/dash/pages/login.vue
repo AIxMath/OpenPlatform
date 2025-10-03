@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vitepress/client'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 
@@ -59,7 +59,7 @@ async function handleLogin() {
     authStore.setAuth(response.token, response.user as any)
 
     // 登录成功后跳转到首页
-    router.push('/')
+    router.go('/')
   }
   catch (error: any) {
     console.error('登录失败:', error)

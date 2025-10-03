@@ -9,5 +9,8 @@ export default antfu({
   files: ['**'],
   rules: {
     'no-console': 'off',
+    'node/prefer-global/buffer': 'off',
+    'no-alert': 'off',
+    'unused-imports/no-unused-vars': 'off',
   },
 })

@@ -234,7 +234,7 @@ export class FileService {
       const data = await fs.readFile(file.path)
       return { data, file }
     }
-    catch (error) {
+    catch {
       throw new Error('Error reading file')
     }
   }

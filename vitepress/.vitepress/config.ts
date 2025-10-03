@@ -1,4 +1,5 @@
 import UnoCSS from 'unocss/vite'
+import Inspect from 'vite-plugin-inspect'
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
@@ -14,6 +15,8 @@ export default defineConfig({
       UnoCSS({
         inspector: false,
       }) as any,
+      Inspect({
+      }),
     ],
   },
   appearance: false,
