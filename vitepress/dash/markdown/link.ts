@@ -3,13 +3,12 @@
 // 2. normalize internal links to end with `.html`
 
 import type { MarkdownItAsync } from 'markdown-it-async'
-import type { MarkdownEnv } from '../../shared'
+import type { MarkdownEnv } from './shared'
 import {
   EXTERNAL_URL_RE,
   isExternal,
-
   treatAsHtml,
-} from '../../shared'
+} from './shared'
 
 const indexRE = /(^|.*\/)index.md(.*)$/i
 

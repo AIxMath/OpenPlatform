@@ -1,5 +1,6 @@
 import type { TransformerCompactLineOption } from '@shikijs/transformers'
 import type { BundledLanguage, ShikiTransformer } from 'shiki'
+import type { MarkdownOptions, ThemeOptions } from 'vitepress'
 import {
   transformerCompactLineOptions,
   transformerNotationDiff,

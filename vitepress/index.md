@@ -8,3 +8,9 @@ hero:
     src: /logo.png
     alt: AI x Math Logo
 ---
+
+HHHIIII
+
+```js
+console.log
+```

@@ -1,14 +1,7 @@
 import type { MarkdownItAsync } from 'markdown-it-async'
 import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 import type Token from 'markdown-it/lib/token.mjs'
-
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/&(?![\w#]+;)/g, '&amp;')
-}
+import { escapeHtml } from './shared'
 
 export function restoreEntities(md: MarkdownItAsync): void {
   md.core.ruler.at('text_join', text_join)

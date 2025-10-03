@@ -140,23 +140,18 @@ onMounted(async () => {
   editorInstance.value = editor
 
   editor.onDidChangeModelContent(() => {
-    console.log('Content changed')
     content.value = editor.getValue()
-  })
-
-  editor.onDidContentSizeChange(() => {
-    console.log('Content size changed')
   })
 
   watch(content, (newContent) => {
     if (typeof newContent === 'string' && newContent !== editor.getValue())
       editor.setValue(newContent)
   })
+})
 
-  onUnmounted(() => {
-    editor.dispose()
-    highlighter.dispose()
-  })
+onUnmounted(() => {
+  editorInstance.value?.dispose()
+  highlighterInstance.value?.dispose()
 })
 </script>
 

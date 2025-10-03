@@ -1,7 +1,7 @@
 import type { MarkdownItAsync } from 'markdown-it-async'
 import type { RenderRule } from 'markdown-it/lib/renderer.mjs'
 import type Token from 'markdown-it/lib/token.mjs'
-import type { MarkdownEnv } from '../../shared'
+import type { MarkdownEnv } from './shared'
 import container from 'markdown-it-container'
 import { extractTitle } from './preWrapper'
 

@@ -1,21 +1,16 @@
 <script setup lang="ts">
-import MarkdownIt from 'markdown-it'
+import type { MarkdownEnv } from 'vitepress'
 import { useRoute, useRouter } from 'vitepress/client'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import DemoMarkdown from '../../demo.md?raw'
 import Editor from '../components/Editor.vue'
+import { createMarkdownRenderer } from '../markdown'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 
-// 初始化 markdown-it
-const md = new MarkdownIt({
-  html: true, // 允许 HTML 标签
-  linkify: true, // 自动将 URL 转换为链接
-  typographer: true, // 启用智能引号和其他排版替换
-  breaks: true, // 将换行符转换为 <br>
-})
+const md = createMarkdownRenderer()
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 const documentId = ref<string>('')
 const content = ref('Loading...')
@@ -28,9 +23,17 @@ let autoSaveTimer: number | null = null
 let saveMessageTimer: number | null = null
 
 // 计算属性：实时渲染 markdown
-const renderedMarkdown = computed(() => {
-  return md.render(content.value)
-})
+const renderedMarkdown = ref('')
+watch(content, async (content) => {
+  renderedMarkdown.value = await (await md).renderAsync(
+    content,
+    {
+      path: '/_.md',
+      relativePath: '/_.md',
+      cleanUrls: true,
+    } satisfies MarkdownEnv,
+  )
+}, { immediate: true })
 
 // 显示提示消息
 function showSaveMessage(message: string, duration: number = 3000) {
@@ -255,7 +258,7 @@ function stopAutoSave() {
 async function initDocument() {
   // 检查是否登录
   if (!authStore.isAuthenticated) {
-    router.go('/dash/login')
+    useRouter().go('/dash/login')
     return
   }
 
@@ -263,7 +266,7 @@ async function initDocument() {
 
   if (!id) {
     console.error('未找到文档ID')
-    content.value = '错误：未找到文档ID'
+    content.value = `错误：未找到文档ID\n\n\n${DemoMarkdown}`
     isLoading.value = false
     return
   }
@@ -486,7 +489,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 右侧预览 -->
-      <div class="flex-1 overflow-auto bg-white">
+      <div class="flex-1 overflow-auto bg-white vp-doc">
         <div
           class="max-w-4xl mx-auto pt-2 px-8 markdown-preview"
           v-html="renderedMarkdown"
@@ -545,154 +548,6 @@ onUnmounted(() => {
 :deep(#container) {
   width: 100%;
   height: 100%;
-}
-
-/* Markdown 预览样式 */
-:deep(.markdown-preview) {
-  line-height: 1.75;
-  color: #374151;
-}
-
-:deep(.markdown-preview h1) {
-  font-size: 2.25rem;
-  font-weight: 800;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  line-height: 1.2;
-  color: #111827;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 0.5rem;
-}
-
-:deep(.markdown-preview h2) {
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin-top: 1.75rem;
-  margin-bottom: 0.875rem;
-  line-height: 1.3;
-  color: #1f2937;
-}
-
-:deep(.markdown-preview h3) {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-  line-height: 1.4;
-  color: #374151;
-}
-
-:deep(.markdown-preview h4),
-:deep(.markdown-preview h5),
-:deep(.markdown-preview h6) {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 1.25rem;
-  margin-bottom: 0.625rem;
-  color: #4b5563;
-}
-
-:deep(.markdown-preview p) {
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-:deep(.markdown-preview a) {
-  color: #3b82f6;
-  text-decoration: underline;
-  transition: color 0.2s;
-}
-
-:deep(.markdown-preview a:hover) {
-  color: #2563eb;
-}
-
-:deep(.markdown-preview code) {
-  background-color: #f3f4f6;
-  color: #ec4899;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-size: 0.875em;
-  font-family: 'Courier New', Courier, monospace;
-}
-
-:deep(.markdown-preview pre) {
-  background-color: #1f2937;
-  color: #f9fafb;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-:deep(.markdown-preview pre code) {
-  background-color: transparent;
-  color: inherit;
-  padding: 0;
-  border-radius: 0;
-  font-size: 0.875rem;
-}
-
-:deep(.markdown-preview ul),
-:deep(.markdown-preview ol) {
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
-  padding-left: 1.5rem;
-}
-
-:deep(.markdown-preview li) {
-  margin-top: 0.375rem;
-  margin-bottom: 0.375rem;
-}
-
-:deep(.markdown-preview blockquote) {
-  border-left: 4px solid #e5e7eb;
-  padding-left: 1rem;
-  margin-left: 0;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  color: #6b7280;
-  font-style: italic;
-}
-
-:deep(.markdown-preview table) {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-:deep(.markdown-preview th),
-:deep(.markdown-preview td) {
-  border: 1px solid #e5e7eb;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-}
-
-:deep(.markdown-preview th) {
-  background-color: #f9fafb;
-  font-weight: 600;
-}
-
-:deep(.markdown-preview tr:nth-child(even)) {
-  background-color: #f9fafb;
-}
-
-:deep(.markdown-preview img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-:deep(.markdown-preview hr) {
-  border: none;
-  border-top: 2px solid #e5e7eb;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
 }
 
 /* 淡入淡出过渡动画 */
