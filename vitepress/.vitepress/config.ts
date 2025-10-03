@@ -11,6 +11,12 @@ export default defineConfig({
     nav: [
     ],
   },
+  rewrites(id) {
+    if (id.startsWith('content/')) {
+      return id.slice('content/'.length)
+    }
+    return id
+  },
   vite: {
     plugins: [
       UnoCSS({

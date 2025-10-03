@@ -3,3 +3,4 @@ node_modules
 **/.vitepress/cache
 .eslintcache
 backend/uploads
+vitepress/content
