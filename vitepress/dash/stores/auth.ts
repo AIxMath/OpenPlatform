@@ -15,7 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
 
   // 计算属性
-  const isAuthenticated = computed(() => true)
+  const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
 
   // 设置认证信息
