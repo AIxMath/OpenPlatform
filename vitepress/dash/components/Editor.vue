@@ -3,18 +3,15 @@ import type { Highlighter } from 'shiki'
 import { shikiToMonaco } from '@shikijs/monaco'
 import * as monaco from 'monaco-editor-core'
 import { createHighlighter } from 'shiki'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, shallowRef, watch } from 'vue'
 
-// Model bound content (markdown text) ensure default empty string
-const content = defineModel<string>({
+const content = defineModel({
   type: String,
   default: '',
 })
 
-// Monaco editor instance ref
-const editorInstance = ref<monaco.editor.IStandaloneCodeEditor | null>(null)
-// Shiki highlighter instance ref
-const highlighterInstance = ref<Highlighter | null>(null)
+const editorInstance = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+const highlighterInstance = shallowRef<Highlighter | null>(null)
 
 // 暴露插入文本的方法
 function insertText(text: string, moveCursor = 0): void {
@@ -110,8 +107,7 @@ defineExpose({
 })
 
 onMounted(async () => {
-  // Create the highlighter, it can be reused
-  highlighterInstance.value = await createHighlighter({
+  const highlighter = highlighterInstance.value = await createHighlighter({
     themes: [
       // 'vitesse-dark',
       'vitesse-light',
@@ -123,7 +119,7 @@ onMounted(async () => {
 
   monaco.languages.register({ id: 'markdown' })
 
-  shikiToMonaco(highlighterInstance.value, monaco)
+  shikiToMonaco(highlighter, monaco)
 
   const container = document.getElementById('container') as HTMLElement | null
   if (!container)
@@ -144,18 +140,23 @@ onMounted(async () => {
   editorInstance.value = editor
 
   editor.onDidChangeModelContent(() => {
+    console.log('Content changed')
     content.value = editor.getValue()
+  })
+
+  editor.onDidContentSizeChange(() => {
+    console.log('Content size changed')
   })
 
   watch(content, (newContent) => {
     if (typeof newContent === 'string' && newContent !== editor.getValue())
       editor.setValue(newContent)
   })
-})
 
-onUnmounted(() => {
-  editorInstance.value?.dispose()
-  highlighterInstance.value?.dispose()
+  onUnmounted(() => {
+    editor.dispose()
+    highlighter.dispose()
+  })
 })
 </script>
 

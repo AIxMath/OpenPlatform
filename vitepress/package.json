@@ -8,6 +8,7 @@
     "serve": "vitepress serve"
   },
   "dependencies": {
+    "@iconify-json/material-symbols": "^1.2.40",
     "@shikijs/monaco": "^3.13.0",
     "markdown-it": "^14.1.0",
     "monaco-editor-core": "^0.53.0",
