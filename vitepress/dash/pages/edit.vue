@@ -255,11 +255,11 @@ function stopAutoSave() {
 async function initDocument() {
   // 检查是否登录
   if (!authStore.isAuthenticated) {
-    router.go('/login')
+    router.go('/dash/login')
     return
   }
 
-  const id = route.params.id as string
+  const id = new URLSearchParams(window.location.search).get('id')
 
   if (!id) {
     console.error('未找到文档ID')

@@ -59,7 +59,7 @@ async function handleLogin() {
     authStore.setAuth(response.token, response.user as any)
 
     // 登录成功后跳转到首页
-    router.go('/')
+    router.go('/dash/home')
   }
   catch (error: any) {
     console.error('登录失败:', error)

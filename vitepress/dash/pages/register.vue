@@ -169,7 +169,7 @@ async function handleRegister() {
     })
 
     // 注册成功后跳转到登录页
-    router.go('/login')
+    router.go('/dash/login')
   }
   catch (error: any) {
     console.error('注册失败:', error)
@@ -182,7 +182,7 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+  <div class="min-h-full flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
       <!-- 标题区域 -->
       <div class="text-center mb-8">
@@ -359,13 +359,13 @@ async function handleRegister() {
         <div class="text-center">
           <p class="text-sm text-gray-600">
             已有账户？
-            <router-link
-              to="/login"
+            <a
+              href="/dash/login"
               class="text-gray-800 font-medium hover:underline inline-flex items-center gap-1"
             >
               立即登录
               <div class="i-material-symbols:arrow-forward w-4 h-4" />
-            </router-link>
+            </a>
           </p>
         </div>
       </div>

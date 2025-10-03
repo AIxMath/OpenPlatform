@@ -10,3 +10,7 @@
   --vp-code-lang-color: transparent;
   --vp-code-line-height: 1.4;
 } */
+
+#app:has(.dash-page) .VPLocalNav {
+  display: none;
+}

@@ -197,7 +197,7 @@ async function handleCreate() {
 
 // 编辑文章
 function handleEdit(blogId: string) {
-  router.go(`/edit/${blogId}`)
+  router.go(`/dash/edit?id=${blogId}`)
 }
 
 // 切换可见性
@@ -260,7 +260,7 @@ async function handleDelete() {
 onMounted(() => {
   // 检查是否登录
   if (!authStore.isAuthenticated) {
-    router.go('/login')
+    router.go('/dash/login')
     return
   }
 
