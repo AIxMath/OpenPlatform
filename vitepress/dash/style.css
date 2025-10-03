@@ -14,3 +14,7 @@
 #app:has(.dash-page) .VPLocalNav {
   display: none;
 }
+
+.dash-page * {
+  border-style: solid;
+}
