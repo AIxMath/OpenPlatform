@@ -3,13 +3,14 @@ import type { Highlighter } from 'shiki'
 import { shikiToMonaco } from '@shikijs/monaco'
 import * as monaco from 'monaco-editor-core'
 import { createHighlighter } from 'shiki'
-import { onMounted, onUnmounted, shallowRef, watch } from 'vue'
+import { onMounted, onUnmounted, shallowRef, useTemplateRef, watch } from 'vue'
 
 const content = defineModel({
   type: String,
   default: '',
 })
 
+const container = useTemplateRef('editor')
 const editorInstance = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 const highlighterInstance = shallowRef<Highlighter | null>(null)
 
@@ -121,11 +122,7 @@ onMounted(async () => {
 
   shikiToMonaco(highlighter, monaco)
 
-  const container = document.getElementById('container') as HTMLElement | null
-  if (!container)
-    return
-
-  const editor = monaco.editor.create(container, {
+  const editor = monaco.editor.create(container.value!, {
     value: content.value,
     language: 'markdown',
     theme: 'vitesse-light',
@@ -133,8 +130,10 @@ onMounted(async () => {
     lineHeight: 24,
     padding: { top: 16, bottom: 16 },
     minimap: { enabled: false },
+    lineNumbersMinChars: 4,
     scrollBeyondLastLine: false,
     wordWrap: 'on',
+    automaticLayout: true,
   })
 
   editorInstance.value = editor
@@ -142,11 +141,14 @@ onMounted(async () => {
   editor.onDidChangeModelContent(() => {
     content.value = editor.getValue()
   })
+})
 
-  watch(content, (newContent) => {
-    if (typeof newContent === 'string' && newContent !== editor.getValue())
-      editor.setValue(newContent)
-  })
+watch(content, (newContent) => {
+  const editor = editorInstance.value
+  if (!editor)
+    return
+  if (typeof newContent === 'string' && newContent !== editor.getValue())
+    editor.setValue(newContent)
 })
 
 onUnmounted(() => {
@@ -156,5 +158,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div id="container" />
+  <div ref="editor" class="w-full h-full" />
 </template>

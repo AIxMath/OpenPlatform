@@ -306,7 +306,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="w-80vw h-[calc(100vh-120px)] flex flex-col overflow-hidden px-10 mt-3 mx-auto min-w-[800px] min-h-[600px] mb-20">
+  <div class="h-[calc(100vh-var(--vp-nav-height)-64px)] relative flex flex-col overflow-hidden px-10 mx-auto min-w-[800px] min-h-[600px] my-8">
     <!-- 工具栏区域 -->
     <header class="flex-shrink-0 flex items-center gap-1 px-4 py-2 border border-gray-200">
       <!-- 标题类 -->
@@ -482,7 +482,7 @@ onUnmounted(() => {
     </header>
 
     <!-- 编辑器容器 - 左右分栏 -->
-    <main class="flex-1 overflow-hidden relative flex border border-gray-200">
+    <main class="flex-1 h-0 overflow-hidden relative flex border border-gray-200">
       <!-- 左侧编辑器 -->
       <div class="flex-1 overflow-hidden">
         <Editor ref="editorRef" v-model="content" />
