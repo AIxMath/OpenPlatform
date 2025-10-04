@@ -219,6 +219,7 @@ export class BlogService {
   static async findAllPublic(
     page: number = 1,
     limit: number = 20,
+    excludeAdmin: boolean = false,
   ): Promise<{
     blogs: BlogResponse[]
     total: number
@@ -226,7 +227,12 @@ export class BlogService {
     totalPages: number
   }> {
     const skip = (page - 1) * limit
-    const filter = { visibility: BlogVisibility.PUBLIC }
+    const filter: any = { visibility: BlogVisibility.PUBLIC }
+
+    // 排除admin用户的博客
+    if (excludeAdmin) {
+      filter.authorName = { $ne: 'admin' }
+    }
 
     const total = await blogs.countDocuments(filter)
     const blogList = await blogs

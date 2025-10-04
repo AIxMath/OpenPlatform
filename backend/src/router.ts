@@ -288,11 +288,13 @@ export const appRouter = router({
     .input(z.object({
       page: z.number().int().positive().default(1),
       limit: z.number().int().positive().max(100).default(20),
+      excludeAdmin: z.boolean().optional().default(false),
     }).optional())
     .query(async ({ input }) => {
       const page = input?.page || 1
       const limit = input?.limit || 20
-      return await BlogService.findAllPublic(page, limit)
+      const excludeAdmin = input?.excludeAdmin || false
+      return await BlogService.findAllPublic(page, limit, excludeAdmin)
     }),
 
   /**

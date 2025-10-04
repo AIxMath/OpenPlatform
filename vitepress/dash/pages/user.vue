@@ -165,6 +165,11 @@ function goToCreateBlog() {
   // 页面加载后会自动弹出创建对话框的逻辑由 my-blogs 页面处理
 }
 
+// 导航到探索页面
+function goToExplore() {
+  router.go('/dash/explore')
+}
+
 onMounted(() => {
   // 检查是否登录
   if (!authStore.isAuthenticated) {
@@ -296,6 +301,24 @@ onMounted(() => {
             </div>
             <p class="text-sm text-gray-600">
               管理和编辑你的所有博客文章
+            </p>
+          </button>
+
+          <!-- 探索页面卡片 -->
+          <button
+            class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-400 transition-all text-left group"
+            @click="goToExplore"
+          >
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-800 transition-colors">
+                <div class="i-material-symbols:explore-outline w-6 h-6 text-gray-600 group-hover:text-white" />
+              </div>
+              <h3 class="text-lg font-medium text-gray-800">
+                探索
+              </h3>
+            </div>
+            <p class="text-sm text-gray-600">
+              发现社区中其他用户的精彩内容
             </p>
           </button>
         </div>
