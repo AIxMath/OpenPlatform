@@ -455,6 +455,49 @@ export class BlogService {
   }
 
   /**
+   * 获取用户的博客统计信息
+   */
+  static async getStatsByAuthorId(authorId: string): Promise<{
+    total: number
+    public: number
+    private: number
+  }> {
+    const pipeline = [
+      {
+        $match: { authorId },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          public: {
+            $sum: {
+              $cond: [{ $eq: ['$visibility', BlogVisibility.PUBLIC] }, 1, 0],
+            },
+          },
+          private: {
+            $sum: {
+              $cond: [{ $eq: ['$visibility', BlogVisibility.PRIVATE] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]
+
+    const result = await blogs.aggregate(pipeline).toArray()
+
+    if (result.length === 0) {
+      return { total: 0, public: 0, private: 0 }
+    }
+
+    return {
+      total: result[0].total,
+      public: result[0].public,
+      private: result[0].private,
+    }
+  }
+
+  /**
    * 创建索引
    */
   static async createIndexes(): Promise<void> {

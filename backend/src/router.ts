@@ -73,6 +73,28 @@ export const appRouter = router({
     }),
 
   /**
+   * 修改密码（需要认证）
+   */
+  changePassword: protectedProcedure
+    .input(z.object({
+      oldPassword: z.string().min(1, 'Old password is required'),
+      newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(
+          /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+          'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        ),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await UserService.changePassword(ctx.user.userId, input.oldPassword, input.newPassword)
+      return {
+        success: true,
+        message: 'Password changed successfully',
+      }
+    }),
+
+  /**
    * 上传文件（需要认证）
    */
   uploadFile: protectedProcedure
@@ -221,6 +243,14 @@ export const appRouter = router({
       const page = input?.page || 1
       const limit = input?.limit || 20
       return await BlogService.findByAuthorId(ctx.user.userId, page, limit)
+    }),
+
+  /**
+   * 获取我的博客统计信息（需要认证）
+   */
+  getMyBlogStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      return await BlogService.getStatsByAuthorId(ctx.user.userId)
     }),
 
   /**

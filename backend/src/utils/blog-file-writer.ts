@@ -125,17 +125,7 @@ export async function writeBlogToFile(
     }
   }
 
-  // 写入新内容
-  // 添加 frontmatter
-  const frontmatter = `---
-title: ${title}
----
-
-`
-
-  const fullContent = frontmatter + content
-
-  fs.writeFileSync(filePath, fullContent, 'utf-8')
+  fs.writeFileSync(filePath, content, 'utf-8')
 
   return { slug, filePath }
 }
