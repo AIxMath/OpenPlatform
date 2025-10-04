@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { db } from '../database.js'
+import { deleteBlogFile, titleToSlug, writeBlogToFile } from '../utils/blog-file-writer.js'
 
 /**
  * 博客可见性状态
@@ -15,6 +16,7 @@ export enum BlogVisibility {
 export interface Blog {
   _id?: ObjectId
   title: string
+  slug?: string // URL 友好的标题，用于文件路径（可选，兼容旧数据）
   content: string // Markdown格式
   visibility: BlogVisibility
   pinned: boolean // 是否被置顶（仅管理员可设置）
@@ -50,6 +52,7 @@ export interface UpdateBlogInput {
 export interface BlogResponse {
   _id: ObjectId
   title: string
+  slug: string
   content: string
   visibility: BlogVisibility
   pinned: boolean
@@ -75,6 +78,7 @@ export class BlogService {
     return {
       _id: blog._id!,
       title: blog.title,
+      slug: blog.slug || titleToSlug(blog.title), // 向后兼容：如果没有 slug，动态生成
       content: blog.content,
       visibility: blog.visibility,
       pinned: blog.pinned || false,
@@ -90,8 +94,21 @@ export class BlogService {
    */
   static async create(input: CreateBlogInput): Promise<BlogResponse> {
     const now = new Date()
+
+    // 先写入文件系统以获取唯一的 slug
+    let finalSlug = titleToSlug(input.title)
+    try {
+      const { slug } = await writeBlogToFile(input.authorName, input.title, input.content)
+      finalSlug = slug
+    }
+    catch (error) {
+      console.error('Failed to write blog file:', error)
+      // 如果文件写入失败，仍使用基础 slug
+    }
+
     const blog: Blog = {
       title: input.title,
+      slug: finalSlug,
       content: input.content,
       visibility: input.visibility,
       pinned: false, // 默认不置顶
@@ -252,6 +269,31 @@ export class BlogService {
       updateData.pinned = false
     }
 
+    // 处理 slug
+    const oldSlug = blog.slug || titleToSlug(blog.title) // 处理旧数据
+
+    // 写入文件系统以获取唯一的 slug
+    try {
+      const finalTitle = updates.title || blog.title
+      const finalContent = updates.content || blog.content
+      const { slug } = await writeBlogToFile(blog.authorName, finalTitle, finalContent, oldSlug)
+
+      // 如果标题改变了或是旧数据，更新 slug
+      if (updates.title || !blog.slug) {
+        updateData.slug = slug
+      }
+    }
+    catch (error) {
+      console.error('Failed to write blog file:', error)
+      // 如果文件写入失败，仍然尝试更新数据库
+      if (updates.title) {
+        updateData.slug = titleToSlug(updates.title)
+      }
+      else if (!blog.slug) {
+        updateData.slug = titleToSlug(blog.title)
+      }
+    }
+
     const result = await blogs.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: updateData },
@@ -322,6 +364,16 @@ export class BlogService {
 
     if (result.deletedCount === 0) {
       throw new Error('Failed to delete blog')
+    }
+
+    // 删除文件
+    try {
+      const slug = blog.slug || titleToSlug(blog.title) // 处理旧数据
+      await deleteBlogFile(blog.authorName, slug)
+    }
+    catch (error) {
+      console.error('Failed to delete blog file:', error)
+      // 不抛出错误，允许博客删除成功，即使文件删除失败
     }
   }
 

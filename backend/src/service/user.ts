@@ -67,8 +67,10 @@ export class UserService {
    * 用户注册
    */
   static async register(input: RegisterInput): Promise<UserResponse> {
-    // 检查用户名是否已存在
-    const existingUsername = await users.findOne({ username: input.username })
+    // 检查用户名是否已存在（大小写不敏感）
+    const existingUsername = await users.findOne({
+      username: { $regex: `^${input.username}$`, $options: 'i' },
+    })
     if (existingUsername) {
       throw new Error('Username already exists')
     }
