@@ -11,6 +11,7 @@ import { trpc } from '../trpc'
 const md = createMarkdownRenderer()
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const documentId = ref<string>('')
 const content = ref('Loading...')
@@ -19,6 +20,7 @@ const isSaving = ref(false)
 const saveMessage = ref('')
 const editorRef = ref<any>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const blogData = ref<any>(null)
 let autoSaveTimer: number | null = null
 let saveMessageTimer: number | null = null
 
@@ -172,6 +174,7 @@ function insertDivider() {
 async function loadDocument(id: string) {
   try {
     const blog = await trpc.getBlogById.query({ blogId: id })
+    blogData.value = blog
     return blog.content
   }
   catch (error: any) {
@@ -224,19 +227,50 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    await trpc.updateBlog.mutate({
+    const result = await trpc.updateBlog.mutate({
       blogId: documentId.value,
       content: content.value,
     })
 
+    // 更新 blogData
+    if (result.data) {
+      blogData.value = result.data
+    }
+
     showSaveMessage('保存成功！')
+    return true
   }
   catch (error: any) {
     console.error('保存失败:', error)
     showSaveMessage(error.message || '保存失败，请稍后重试')
+    return false
   }
   finally {
     isSaving.value = false
+  }
+}
+
+// 保存并返回
+async function handleSaveAndBack() {
+  const success = await handleSave()
+  if (success) {
+    router.go('/dash/my-blogs')
+  }
+}
+
+// 保存并预览
+async function handleSaveAndPreview() {
+  const success = await handleSave()
+  if (success && blogData.value) {
+    const username = authStore.user?.username || blogData.value.authorName
+    const lowercaseUsername = username.toLowerCase()
+    
+    if (lowercaseUsername === 'admin') {
+      window.open(`/${blogData.value.slug}`, '_blank')
+    }
+    else {
+      window.open(`/${lowercaseUsername}/blog/${blogData.value.slug}`, '_blank')
+    }
   }
 }
 
@@ -465,6 +499,26 @@ onUnmounted(() => {
           class="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
         />
         <div v-else class="i-material-symbols:save w-5 h-5" />
+      </button>
+
+      <!-- 保存并返回 -->
+      <button
+        :disabled="isLoading || isSaving"
+        class="toolbar-btn"
+        title="保存并返回"
+        @click="handleSaveAndBack"
+      >
+        <div class="i-material-symbols:arrow-back w-5 h-5" />
+      </button>
+
+      <!-- 保存并预览 -->
+      <button
+        :disabled="isLoading || isSaving"
+        class="toolbar-btn"
+        title="保存并预览"
+        @click="handleSaveAndPreview"
+      >
+        <div class="i-material-symbols:check w-5 h-5" />
       </button>
 
       <div class="flex-1" />
