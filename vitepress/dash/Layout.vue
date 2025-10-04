@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import DefaultTheme from 'vitepress/theme'
-import LoginButton from './components/LoginButton.vue'
+import NavBar from './components/NavBar.vue'
 
 const { Layout } = DefaultTheme
 </script>
@@ -9,7 +9,7 @@ const { Layout } = DefaultTheme
   <Layout>
     <template #nav-bar-content-after>
       <ClientOnly>
-        <LoginButton />
+        <NavBar />
       </ClientOnly>
     </template>
   </Layout>
