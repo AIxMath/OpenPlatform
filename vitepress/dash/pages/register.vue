@@ -182,7 +182,7 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="min-h-full flex items-center justify-center px-4 py-12">
+  <div class="h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4">
     <div class="w-full max-w-md">
       <!-- 标题区域 -->
       <div class="text-center mb-8">

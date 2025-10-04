@@ -150,10 +150,8 @@ async function handleChangePassword() {
 
 // 登出
 function handleLogout() {
-  if (confirm('确定要退出登录吗？')) {
-    authStore.logout()
-    router.go('/dash/login')
-  }
+  authStore.logout()
+  router.go('/dash/login')
 }
 
 // 导航到我的博客

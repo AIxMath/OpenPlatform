@@ -58,8 +58,8 @@ async function handleLogin() {
     // 保存 token 和用户信息
     authStore.setAuth(response.token, response.user as any)
 
-    // 登录成功后跳转到首页
-    router.go('/dash/home')
+    // 登录成功后跳转到个人主页
+    router.go('/dash/user')
   }
   catch (error: any) {
     console.error('登录失败:', error)
@@ -72,7 +72,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4">
     <div class="w-full max-w-md">
       <!-- 标题区域 -->
       <div class="text-center mb-8">
