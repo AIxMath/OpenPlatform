@@ -12,7 +12,10 @@ const content = defineModel({
 
 const container = useTemplateRef('editor')
 const editorInstance = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null)
-const highlighterInstance = shallowRef<Highlighter | null>(null)
+
+// 全局单例 highlighter，避免重复创建和销毁
+let globalHighlighter: Highlighter | null = null
+let isLanguageRegistered = false
 
 // 暴露插入文本的方法
 function insertText(text: string, moveCursor = 0): void {
@@ -108,19 +111,31 @@ defineExpose({
 })
 
 onMounted(async () => {
-  const highlighter = highlighterInstance.value = await createHighlighter({
-    themes: [
-      // 'vitesse-dark',
-      'vitesse-light',
-    ],
-    langs: [
-      'markdown',
-    ],
-  })
+  // 使用全局单例，只在首次创建时初始化
+  if (!globalHighlighter) {
+    globalHighlighter = await createHighlighter({
+      themes: [
+        // 'vitesse-dark',
+        'vitesse-light',
+      ],
+      langs: [
+        'markdown',
+      ],
+    })
+  }
 
-  monaco.languages.register({ id: 'markdown' })
-
-  shikiToMonaco(highlighter, monaco)
+  // 只在首次注册语言
+  if (!isLanguageRegistered) {
+    try {
+      monaco.languages.register({ id: 'markdown' })
+      shikiToMonaco(globalHighlighter, monaco)
+      isLanguageRegistered = true
+    }
+    catch (error) {
+      // 语言可能已经注册过，忽略错误
+      console.warn('Monaco language already registered:', error)
+    }
+  }
 
   const editor = monaco.editor.create(container.value!, {
     value: content.value,
@@ -152,8 +167,9 @@ watch(content, (newContent) => {
 })
 
 onUnmounted(() => {
+  // 只销毁编辑器实例，保留 highlighter 供下次使用
   editorInstance.value?.dispose()
-  highlighterInstance.value?.dispose()
+  editorInstance.value = null
 })
 </script>
 
