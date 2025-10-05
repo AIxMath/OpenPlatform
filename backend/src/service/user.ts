@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { ObjectId } from 'mongodb'
-import { db } from '../database.js'
+import { db } from '../database.ts'
 
 const SALT_ROUNDS = 10
 

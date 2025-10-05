@@ -1,8 +1,8 @@
 import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone'
-import type { JWTPayload } from './middleware/auth.js'
+import type { JWTPayload } from './middleware/auth.ts'
 import { initTRPC, TRPCError } from '@trpc/server'
-import { extractToken, verifyToken } from './middleware/auth.js'
-import { UserRole } from './service/user.js'
+import { extractToken, verifyToken } from './middleware/auth.ts'
+import { UserRole } from './service/user.ts'
 
 /**
  * 上下文类型定义

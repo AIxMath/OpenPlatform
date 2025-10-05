@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { generateToken } from './middleware/auth.js'
-import { BlogService, BlogVisibility } from './service/blog.js'
-import { FileService } from './service/file.js'
-import { UserService } from './service/user.js'
-import { adminProcedure, protectedProcedure, publicProcedure, router } from './trpc.js'
+import { generateToken } from './middleware/auth.ts'
+import { BlogService, BlogVisibility } from './service/blog.ts'
+import { FileService } from './service/file.ts'
+import { UserService } from './service/user.ts'
+import { adminProcedure, protectedProcedure, publicProcedure, router } from './trpc.ts'
 
 /**
  * 应用路由

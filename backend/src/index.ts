@@ -4,15 +4,15 @@ import path from 'node:path'
 import process from 'node:process'
 import { createHTTPHandler } from '@trpc/server/adapters/standalone'
 import { contentType as mimeContentType, lookup as mimeLookup } from 'mime-types'
-import { db } from './database.js'
-import { extractToken, verifyToken } from './middleware/auth.js'
-import { appRouter } from './router'
-import { BlogService } from './service/blog.js'
-import { FileService } from './service/file.js'
-import { UserService } from './service/user.js'
-import { createContext } from './trpc.js'
+import { db } from './database.ts'
+import { extractToken, verifyToken } from './middleware/auth.ts'
+import { appRouter } from './router.ts'
+import { BlogService } from './service/blog.ts'
+import { FileService } from './service/file.ts'
+import { UserService } from './service/user.ts'
+import { createContext } from './trpc.ts'
 
-export * from './router'
+export * from './router.ts'
 
 // 初始化数据库索引
 async function initializeDatabase() {

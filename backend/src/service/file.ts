@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { ObjectId } from 'mongodb'
-import { db } from '../database.js'
+import { db } from '../database.ts'
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads'
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB

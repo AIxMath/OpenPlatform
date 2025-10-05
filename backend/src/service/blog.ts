@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
-import { db } from '../database.js'
-import { deleteBlogFile, titleToSlug, writeBlogToFile } from '../utils/blog-file-writer.js'
+import { db } from '../database.ts'
+import { deleteBlogFile, titleToSlug, writeBlogToFile } from '../utils/blog-file-writer.ts'
 
 /**
  * 博客可见性状态
