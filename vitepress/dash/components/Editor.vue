@@ -104,10 +104,57 @@ function replaceSelectedText(text: string): void {
   }, 0)
 }
 
+// 暴露获取和替换当前行的方法
+function getCurrentLineText(): string {
+  const editor = editorInstance.value
+  if (!editor)
+    return ''
+  const position = editor.getPosition()
+  if (!position)
+    return ''
+  const model = editor.getModel()
+  if (!model)
+    return ''
+  return model.getLineContent(position.lineNumber)
+}
+
+function replaceCurrentLine(text: string): void {
+  const editor = editorInstance.value
+  if (!editor)
+    return
+
+  const position = editor.getPosition()
+  if (!position)
+    return
+
+  const model = editor.getModel()
+  if (!model)
+    return
+
+  const lineNumber = position.lineNumber
+  const lineLength = model.getLineMaxColumn(lineNumber)
+
+  editor.executeEdits('', [{
+    range: new monaco.Range(lineNumber, 1, lineNumber, lineLength),
+    text,
+  }])
+
+  // 将光标移到行尾
+  const newPosition = new monaco.Position(lineNumber, text.length + 1)
+  editor.setPosition(newPosition)
+
+  // 确保编辑器获得焦点
+  setTimeout(() => {
+    editor.focus()
+  }, 0)
+}
+
 defineExpose({
   insertText,
   getSelectedText,
   replaceSelectedText,
+  getCurrentLineText,
+  replaceCurrentLine,
 })
 
 onMounted(async () => {

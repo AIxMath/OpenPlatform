@@ -24,11 +24,38 @@ const blogData = ref<any>(null)
 let autoSaveTimer: number | null = null
 let saveMessageTimer: number | null = null
 
+// 移除 YAML front matter
+function removeFrontMatter(text: string): string {
+  // 检查是否以 --- 开头
+  const trimmed = text.trimStart()
+  if (trimmed.startsWith('---\n') || trimmed.startsWith('---\r\n')) {
+    // 查找第二个 --- 的位置
+    const lines = trimmed.split('\n')
+    let endIndex = -1
+
+    // 从第二行开始查找结束标记
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '---') {
+        endIndex = i
+        break
+      }
+    }
+
+    if (endIndex > 0) {
+      // 返回去除 front matter 后的内容
+      return lines.slice(endIndex + 1).join('\n')
+    }
+  }
+  return text
+}
+
 // 计算属性：实时渲染 markdown
 const renderedMarkdown = ref('')
 watch(content, async (content) => {
+  // 渲染前去除 front matter
+  const cleanContent = removeFrontMatter(content)
   renderedMarkdown.value = await (await md).renderAsync(
-    content,
+    cleanContent,
     {
       path: '/_.md',
       relativePath: '/_.md',
@@ -54,36 +81,113 @@ function showSaveMessage(message: string, duration: number = 3000) {
 
 // 工具栏插入函数
 function insertHeading(level: number) {
-  const prefix = `${'#'.repeat(level)} `
-  editorRef.value?.insertText(prefix)
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText && !selectedText.includes('\n')) {
+    // 选中单行文本时，转换为标题
+    const prefix = '#'.repeat(level)
+    // 去除已有的标题标记
+    const cleanText = selectedText.replace(/^#+\s*/, '')
+    editorRef.value?.replaceSelectedText(`${prefix} ${cleanText}`)
+  }
+  else if (!selectedText) {
+    // 无选中内容时，在当前行开头添加标题标记
+    const currentLine = editorRef.value?.getCurrentLineText() || ''
+    const prefix = '#'.repeat(level)
+    // 去除已有的标题标记
+    const cleanText = currentLine.replace(/^#+\s*/, '')
+    editorRef.value?.replaceCurrentLine(`${prefix} ${cleanText}`)
+  }
+  else {
+    // 多行选中时，插入标题前缀
+    const prefix = `${'#'.repeat(level)} `
+    editorRef.value?.insertText(prefix)
+  }
 }
 
 function insertBold() {
-  editorRef.value?.insertText('****', -2)
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    editorRef.value?.replaceSelectedText(`**${selectedText}**`)
+  }
+  else {
+    editorRef.value?.insertText('****', -2)
+  }
 }
 
 function insertItalic() {
-  editorRef.value?.insertText('**', -1)
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    editorRef.value?.replaceSelectedText(`*${selectedText}*`)
+  }
+  else {
+    editorRef.value?.insertText('**', -1)
+  }
 }
 
 function insertUnorderedList() {
-  editorRef.value?.insertText('- ')
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    // 为选中的每一行添加列表前缀
+    const lines = selectedText.split('\n')
+    const formatted = lines.map(line => `- ${line}`).join('\n')
+    editorRef.value?.replaceSelectedText(formatted)
+  }
+  else {
+    editorRef.value?.insertText('- ')
+  }
 }
 
 function insertOrderedList() {
-  editorRef.value?.insertText('1. ')
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    // 为选中的每一行添加有序列表前缀
+    const lines = selectedText.split('\n')
+    const formatted = lines.map((line, index) => `${index + 1}. ${line}`).join('\n')
+    editorRef.value?.replaceSelectedText(formatted)
+  }
+  else {
+    editorRef.value?.insertText('1. ')
+  }
 }
 
 function insertQuote() {
-  editorRef.value?.insertText('> ')
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    // 为选中的每一行添加引用前缀
+    const lines = selectedText.split('\n')
+    const formatted = lines.map(line => `> ${line}`).join('\n')
+    editorRef.value?.replaceSelectedText(formatted)
+  }
+  else {
+    editorRef.value?.insertText('> ')
+  }
 }
 
 function insertCode() {
-  editorRef.value?.insertText('```\n\n```', -4)
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    // 如果选中文本包含换行符，使用代码块格式
+    if (selectedText.includes('\n')) {
+      editorRef.value?.replaceSelectedText(`\`\`\`\n${selectedText}\n\`\`\``)
+    }
+    else {
+      // 单行文本使用行内代码格式
+      editorRef.value?.replaceSelectedText(`\`${selectedText}\``)
+    }
+  }
+  else {
+    editorRef.value?.insertText('```\n\n```', -4)
+  }
 }
 
 function insertLink() {
-  editorRef.value?.insertText('[链接文字](url)', -1)
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    editorRef.value?.replaceSelectedText(`[${selectedText}](url)`)
+  }
+  else {
+    editorRef.value?.insertText('[链接文字](url)', -1)
+  }
 }
 
 function insertImage() {
@@ -163,7 +267,20 @@ function insertTable() {
 }
 
 function insertFormula() {
-  editorRef.value?.insertText('$$\n\n$$', -3)
+  const selectedText = editorRef.value?.getSelectedText()
+  if (selectedText) {
+    // 如果选中文本包含换行符，使用块级公式
+    if (selectedText.includes('\n')) {
+      editorRef.value?.replaceSelectedText(`$$\n${selectedText}\n$$`)
+    }
+    else {
+      // 单行文本使用行内公式
+      editorRef.value?.replaceSelectedText(`$${selectedText}$`)
+    }
+  }
+  else {
+    editorRef.value?.insertText('$$\n\n$$', -3)
+  }
 }
 
 function insertDivider() {
@@ -264,7 +381,7 @@ async function handleSaveAndPreview() {
   if (success && blogData.value) {
     const username = authStore.user?.username || blogData.value.authorName
     const lowercaseUsername = username.toLowerCase()
-    
+
     if (lowercaseUsername === 'admin') {
       window.open(`/${blogData.value.slug}`, '_blank')
     }
