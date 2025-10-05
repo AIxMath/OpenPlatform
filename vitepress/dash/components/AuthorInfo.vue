@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { useData } from 'vitepress'
 import { computed } from 'vue'
+import UserAvatar from './UserAvatar.vue'
 
 const { frontmatter } = useData()
 
 // 从 frontmatter 获取作者信息，如果没有则使用默认值
 const author = computed(() => ({
   name: frontmatter.value.author || '未知作者',
-  avatar: frontmatter.value.avatar || '/logo.png',
+  avatar: frontmatter.value.avatar || null,
   bio: frontmatter.value.bio || '这个人很懒，什么都没有留下...',
   email: frontmatter.value.email,
   github: frontmatter.value.github,
@@ -24,7 +25,11 @@ const hasLinks = computed(() => {
       关于作者
     </div>
     <div class="author-content">
-      <img :src="author.avatar" :alt="author.name" class="author-avatar">
+      <UserAvatar
+        :src="author.avatar"
+        :username="author.name"
+        size="small"
+      />
       <div class="author-details">
         <div class="author-name">
           {{ author.name }}
@@ -69,15 +74,6 @@ const hasLinks = computed(() => {
   display: flex;
   gap: 1rem;
   align-items: flex-start;
-}
-
-.author-avatar {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-  flex-shrink: 0;
 }
 
 .author-details {
@@ -132,11 +128,6 @@ const hasLinks = computed(() => {
 
   .author-content {
     gap: 0.75rem;
-  }
-
-  .author-avatar {
-    width: 2.5rem;
-    height: 2.5rem;
   }
 
   .author-name {

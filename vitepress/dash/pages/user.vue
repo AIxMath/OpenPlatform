@@ -2,6 +2,7 @@
 import { useRouter } from 'vitepress/client'
 import { computed, onMounted, reactive, ref } from 'vue'
 import CreateBlogDialog from '../components/CreateBlogDialog.vue'
+import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 
@@ -183,11 +184,22 @@ function goToExplore() {
   router.go('/dash/explore')
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 检查是否登录
   if (!authStore.isAuthenticated) {
     router.go('/dash/login')
     return
+  }
+
+  // 刷新用户信息（确保头像等信息是最新的）
+  try {
+    const user = await trpc.getMe.query()
+    if (user && authStore.user) {
+      authStore.user = { ...authStore.user, ...user }
+    }
+  }
+  catch (error) {
+    console.error('刷新用户信息失败:', error)
   }
 
   loadBlogStats()
@@ -212,12 +224,11 @@ onMounted(() => {
         <div class="flex items-start justify-between mb-4">
           <div class="flex items-center gap-4">
             <!-- 用户头像 -->
-            <div v-if="userAvatar" class="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200">
-              <img :src="userAvatar" :alt="authStore.user?.username" class="w-full h-full object-cover">
-            </div>
-            <div v-else class="w-16 h-16 bg-gray-800 text-white rounded-full flex items-center justify-center text-2xl font-medium">
-              {{ authStore.user?.username.charAt(0).toUpperCase() }}
-            </div>
+            <UserAvatar
+              :src="userAvatar"
+              :username="authStore.user?.username || ''"
+              size="medium"
+            />
             <div>
               <h2 class="text-xl font-medium text-gray-800">
                 {{ authStore.user?.username }}

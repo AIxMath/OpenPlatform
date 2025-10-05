@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vitepress/client'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 
@@ -28,11 +29,6 @@ const errors = reactive({
   bio: '',
   github: '',
   contactEmail: '',
-})
-
-// 当前头像预览
-const avatarPreview = computed(() => {
-  return profileForm.avatar || '/logo.png'
 })
 
 // 加载用户个人资料
@@ -81,7 +77,7 @@ function validateForm(): boolean {
   return true
 }
 
-// 保存个人资料
+// 保存个人资料（不包括头像，头像已经自动保存）
 async function handleSave() {
   if (!validateForm())
     return
@@ -92,13 +88,12 @@ async function handleSave() {
 
   try {
     await trpc.updateProfile.mutate({
-      avatar: profileForm.avatar || undefined,
       bio: profileForm.bio || undefined,
       github: profileForm.github || undefined,
       contactEmail: profileForm.contactEmail || undefined,
     })
 
-    successMessage.value = '个人资料保存成功！'
+    successMessage.value = '基本信息保存成功！'
 
     // 更新 store 中的用户信息
     const updatedUser = await trpc.getMe.query()
@@ -165,8 +160,21 @@ async function handleFileChange(event: Event) {
       })
 
       // 更新头像路径
-      profileForm.avatar = `/files/${result.data.filename}`
-      avatarSuccessMessage.value = '头像上传成功！'
+      const newAvatarPath = `/files/${result.data.filename}`
+      profileForm.avatar = newAvatarPath
+
+      // 自动保存头像到个人资料
+      await trpc.updateProfile.mutate({
+        avatar: newAvatarPath,
+      })
+
+      // 更新 store 中的用户信息
+      const updatedUser = await trpc.getMe.query()
+      if (authStore.user && updatedUser) {
+        authStore.user = { ...authStore.user, ...updatedUser }
+      }
+
+      avatarSuccessMessage.value = '头像已保存！'
 
       setTimeout(() => {
         avatarSuccessMessage.value = ''
@@ -193,13 +201,31 @@ async function handleFileChange(event: Event) {
     target.value = ''
 }
 
-// 使用默认头像
-function useDefaultAvatar() {
-  profileForm.avatar = '/logo.png'
-  avatarSuccessMessage.value = '已设置为默认头像'
-  setTimeout(() => {
-    avatarSuccessMessage.value = ''
-  }, 2000)
+// 使用默认头像（首字母）
+async function useDefaultAvatar() {
+  try {
+    profileForm.avatar = ''
+
+    // 自动保存到个人资料
+    await trpc.updateProfile.mutate({
+      avatar: '',
+    })
+
+    // 更新 store 中的用户信息
+    const updatedUser = await trpc.getMe.query()
+    if (authStore.user && updatedUser) {
+      authStore.user = { ...authStore.user, ...updatedUser }
+    }
+
+    avatarSuccessMessage.value = '已设置为首字母头像！'
+    setTimeout(() => {
+      avatarSuccessMessage.value = ''
+    }, 3000)
+  }
+  catch (error: any) {
+    console.error('设置失败:', error)
+    errorMessage.value = error.message || '设置失败，请稍后重试'
+  }
 }
 
 // 返回个人主页
@@ -240,22 +266,20 @@ onMounted(async () => {
         <!-- 头像设置 -->
         <div class="section">
           <h2 class="section-title">
-            头像设置
+            头像
           </h2>
           <div class="avatar-section">
             <div class="avatar-preview">
-              <img :src="avatarPreview" alt="头像预览" class="avatar">
+              <UserAvatar
+                :src="profileForm.avatar || null"
+                :username="authStore.user?.username || ''"
+                size="large"
+              />
               <div v-if="isUploadingAvatar" class="avatar-loading">
                 <div class="spinner-small" />
               </div>
             </div>
             <div class="avatar-actions">
-              <!-- 头像上传成功消息 -->
-              <div v-if="avatarSuccessMessage" class="message message-success">
-                <div class="i-material-symbols:check-circle w-4 h-4" />
-                <span>{{ avatarSuccessMessage }}</span>
-              </div>
-
               <button
                 type="button"
                 class="button button-primary"
@@ -270,8 +294,8 @@ onMounted(async () => {
                 class="button button-secondary"
                 @click="useDefaultAvatar"
               >
-                <div class="i-material-symbols:image-outline w-5 h-5" />
-                <span>使用默认头像</span>
+                <div class="i-material-symbols:person-outline w-5 h-5" />
+                <span>使用首字母头像</span>
               </button>
               <input
                 ref="fileInputRef"
@@ -287,10 +311,16 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- 头像上传成功消息 -->
+        <div v-if="avatarSuccessMessage" class="message message-success">
+          <div class="i-material-symbols:check-circle w-5 h-5" />
+          <span>{{ avatarSuccessMessage }}</span>
+        </div>
+
         <!-- 个人信息 -->
         <div class="section">
           <h2 class="section-title">
-            个人信息
+            基本信息
           </h2>
           <form class="form" @submit.prevent="handleSave">
             <!-- 个人简介 -->
@@ -357,14 +387,6 @@ onMounted(async () => {
               </p>
             </div>
 
-            <!-- 错误和成功消息 -->
-            <div v-if="errorMessage" class="message message-error">
-              {{ errorMessage }}
-            </div>
-            <div v-if="successMessage" class="message message-success">
-              {{ successMessage }}
-            </div>
-
             <!-- 提交按钮 -->
             <div class="form-actions">
               <button
@@ -373,10 +395,22 @@ onMounted(async () => {
                 :disabled="isSaving"
               >
                 <div v-if="isSaving" class="spinner-small" />
-                <span>{{ isSaving ? '保存中...' : '保存更改' }}</span>
+                <span>{{ isSaving ? '保存中...' : '保存基本信息' }}</span>
               </button>
             </div>
           </form>
+        </div>
+
+        <!-- 基本信息保存成功消息 -->
+        <div v-if="successMessage" class="message message-success">
+          <div class="i-material-symbols:check-circle w-5 h-5" />
+          <span>{{ successMessage }}</span>
+        </div>
+
+        <!-- 错误消息 -->
+        <div v-if="errorMessage" class="message message-error">
+          <div class="i-material-symbols:error-outline w-5 h-5" />
+          <span>{{ errorMessage }}</span>
         </div>
       </div>
     </div>
@@ -386,28 +420,29 @@ onMounted(async () => {
 <style scoped>
 .profile-page {
   min-height: 100vh;
-  background: #f9fafb;
+  background: #fafafa;
   padding: 2rem 1rem;
 }
 
 .container {
-  max-width: 800px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
 .header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .back-button {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: white;
+  padding: 0.5rem 0.875rem;
+  background: transparent;
   border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+  border-radius: 0.375rem;
   color: #6b7280;
+  font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 1rem;
@@ -416,11 +451,12 @@ onMounted(async () => {
 .back-button:hover {
   border-color: #d1d5db;
   color: #1f2937;
+  background: #fafafa;
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 600;
   color: #1f2937;
   margin: 0;
 }
@@ -430,10 +466,10 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem;
+  padding: 3rem;
   background: white;
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
 }
 
 .spinner {
@@ -463,44 +499,34 @@ onMounted(async () => {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .section {
   background: white;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
 }
 
 .section-title {
-  font-size: 1.25rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1f2937;
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .avatar-section {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: flex-start;
 }
 
 .avatar-preview {
   position: relative;
-  width: 8rem;
-  height: 8rem;
   flex-shrink: 0;
-}
-
-.avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #e5e7eb;
 }
 
 .avatar-loading {
@@ -521,7 +547,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .file-input {
@@ -531,7 +557,7 @@ onMounted(async () => {
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .form-group {
@@ -541,25 +567,26 @@ onMounted(async () => {
 }
 
 .label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #4b5563;
 }
 
 .input,
 .textarea {
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
   font-size: 0.875rem;
   transition: all 0.2s;
+  background: #fafafa;
 }
 
 .input:focus,
 .textarea:focus {
   outline: none;
-  border-color: #1f2937;
-  box-shadow: 0 0 0 3px rgba(31, 41, 55, 0.1);
+  border-color: #d1d5db;
+  background: white;
 }
 
 .input.error,
@@ -580,7 +607,7 @@ onMounted(async () => {
 
 .hint {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #9ca3af;
   margin: 0;
 }
 
@@ -597,21 +624,24 @@ onMounted(async () => {
 }
 
 .message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
 }
 
 .message-error {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #fef2f2;
+  color: #dc2626;
   border: 1px solid #fecaca;
 }
 
 .message-success {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
 }
 
 .form-actions {
@@ -623,9 +653,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -644,24 +674,24 @@ onMounted(async () => {
 }
 
 .button-primary:hover:not(:disabled) {
-  background: #111827;
-  border-color: #111827;
+  background: #374151;
 }
 
 .button-secondary {
-  background: white;
-  color: #1f2937;
-  border-color: #d1d5db;
+  background: transparent;
+  color: #6b7280;
+  border-color: #e5e7eb;
 }
 
 .button-secondary:hover:not(:disabled) {
   background: #f9fafb;
-  border-color: #9ca3af;
+  color: #1f2937;
+  border-color: #d1d5db;
 }
 
 .button-large {
-  padding: 0.875rem 2rem;
-  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
   width: 100%;
 }
 
@@ -670,8 +700,16 @@ onMounted(async () => {
     padding: 1rem 0.5rem;
   }
 
+  .container {
+    max-width: 100%;
+  }
+
   .section {
-    padding: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 0.8125rem;
   }
 
   .avatar-section {

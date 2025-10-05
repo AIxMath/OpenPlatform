@@ -274,7 +274,8 @@ onMounted(() => {
         <div
           v-for="blog in blogs"
           :key="blog._id"
-          class="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-400 transition-colors"
+          class="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-400 transition-colors cursor-pointer"
+          @click="handleView(blog)"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
@@ -316,14 +317,7 @@ onMounted(() => {
             </div>
 
             <!-- 操作按钮 -->
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <button
-                class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                title="查看"
-                @click="handleView(blog)"
-              >
-                <div class="i-material-symbols:visibility-outline w-5 h-5" />
-              </button>
+            <div class="flex items-center gap-2 flex-shrink-0" @click.stop>
               <button
                 class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
                 title="编辑"

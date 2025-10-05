@@ -231,17 +231,6 @@ onMounted(() => {
                 </span>
               </div>
             </div>
-
-            <!-- 查看按钮 -->
-            <div class="flex items-center flex-shrink-0">
-              <button
-                class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                title="查看"
-                @click.stop="handleView(blog)"
-              >
-                <div class="i-material-symbols:visibility-outline w-5 h-5" />
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -294,4 +283,3 @@ onMounted(() => {
   overflow: hidden;
 }
 </style>
-

@@ -87,7 +87,7 @@ async function handleCreate() {
 
     const defaultContent = `---
 author: ${username}
-avatar: ${profile.avatar || '/logo.png'}
+avatar: ${profile.avatar || ''}
 bio: ${profile.bio || '这个人很懒，什么都没有留下...'}
 email: ${profile.contactEmail || ''}
 github: ${profile.github || ''}
