@@ -4,6 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { createHTTPHandler } from '@trpc/server/adapters/standalone'
 import { contentType as mimeContentType, lookup as mimeLookup } from 'mime-types'
+import { db } from './database.js'
 import { extractToken, verifyToken } from './middleware/auth.js'
 import { appRouter } from './router'
 import { BlogService } from './service/blog.js'
@@ -64,6 +65,13 @@ function parseBlogUrl(url: string): { username: string, slug: string } | null {
     return { username: 'admin', slug: adminBlogMatch[1] }
   }
 
+  // 匹配博客相关的 JavaScript 文件
+  // 格式: /assets/{username}_blog_{slug}.md.{hash}.js 或 .lean.js
+  const jsBlogMatch = cleanUrl.match(/^\/assets\/([^_]+)_blog_([^.]+)\.md\.[^.]+(?:\.lean)?\.js$/)
+  if (jsBlogMatch) {
+    return { username: jsBlogMatch[1].toLowerCase(), slug: jsBlogMatch[2] }
+  }
+
   return null
 }
 
@@ -97,7 +105,7 @@ async function checkBlogAccess(
 ): Promise<boolean> {
   try {
     // 从数据库查找博客
-    const blogsCollection = (await import('./database.js')).db.collection('blogs')
+    const blogsCollection = db.collection('blogs')
     const blog = await blogsCollection.findOne({
       authorName: new RegExp(`^${username}$`, 'i'), // 不区分大小写
       slug,
@@ -177,9 +185,29 @@ function serveUploadedFile(req: http.IncomingMessage, res: http.ServerResponse) 
   }
 }
 
+/**
+ * 返回404页面
+ */
+function serve404(res: http.ServerResponse) {
+  const notFoundPath = path.join(staticDir, '404.html')
+
+  if (fs.existsSync(notFoundPath)) {
+    res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' })
+    fs.createReadStream(notFoundPath).pipe(res)
+  }
+  else {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('Not Found')
+  }
+}
+
 async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   // Normalize and prevent path traversal
-  const url = req.url || '/'
+  let url = req.url || '/'
+
+  // 移除查询参数和哈希
+  url = url.split('?')[0].split('#')[0]
+
   if (url === '/' || url === '') {
     const indexPath = path.join(staticDir, 'index.html')
     if (fs.existsSync(indexPath)) {
@@ -187,26 +215,34 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
       fs.createReadStream(indexPath).pipe(res)
     }
     else {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
-      res.end('index.html not found')
+      serve404(res)
     }
     return
   }
 
   // 检查是否是博客URL，如果是则进行权限验证
-  const blogInfo = parseBlogUrl(url)
+  // 注意：需要在添加 .html 后缀前检查，因为 parseBlogUrl 已经处理了 .html
+  let blogInfo = parseBlogUrl(url)
+  let urlToTry = url
+
+  // 如果URL不以.html结尾，尝试添加.html后缀
+  if (!url.endsWith('.html') && !url.includes('.')) {
+    urlToTry = `${url}.html`
+    // 重新解析博客信息（使用添加后缀的URL）
+    blogInfo = parseBlogUrl(urlToTry)
+  }
+
   if (blogInfo) {
     const hasAccess = await checkBlogAccess(blogInfo.username, blogInfo.slug, req)
 
     if (!hasAccess) {
       // 未授权访问私有博客，返回404（不暴露博客是否存在）
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
-      res.end('Not Found')
+      serve404(res)
       return
     }
   }
 
-  const safePath = path.normalize(url).replace(/^\/+/, '') // remove leading slashes
+  const safePath = path.normalize(urlToTry).replace(/^\/+/, '') // remove leading slashes
   const filePath = path.join(staticDir, safePath)
 
   // Ensure file is inside staticDir
@@ -221,9 +257,20 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
     fs.createReadStream(filePath).pipe(res)
   }
   else {
-    // Not found -> 404 (could choose SPA fallback to index.html if desired)
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
-    res.end('Not Found')
+    // 如果添加了.html后缀还是找不到，尝试原始URL
+    if (urlToTry !== url) {
+      const originalSafePath = path.normalize(url).replace(/^\/+/, '')
+      const originalFilePath = path.join(staticDir, originalSafePath)
+
+      if (originalFilePath.startsWith(staticDir) && fs.existsSync(originalFilePath) && fs.statSync(originalFilePath).isFile()) {
+        res.writeHead(200, { 'Content-Type': getContentType(originalFilePath) })
+        fs.createReadStream(originalFilePath).pipe(res)
+        return
+      }
+    }
+
+    // 文件不存在，返回404页面
+    serve404(res)
   }
 }
 
