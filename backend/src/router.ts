@@ -95,6 +95,25 @@ export const appRouter = router({
     }),
 
   /**
+   * 更新用户个人资料（需要认证）
+   */
+  updateProfile: protectedProcedure
+    .input(z.object({
+      avatar: z.string().optional(),
+      bio: z.string().max(500, 'Bio is too long').optional(),
+      github: z.string().max(100, 'GitHub username is too long').optional(),
+      contactEmail: z.string().email('Invalid email').optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const user = await UserService.updateProfile(ctx.user.userId, input)
+      return {
+        success: true,
+        message: 'Profile updated successfully',
+        data: user,
+      }
+    }),
+
+  /**
    * 上传文件（需要认证）
    */
   uploadFile: protectedProcedure
@@ -102,11 +121,21 @@ export const appRouter = router({
       filename: z.string().min(1, 'Filename is required'),
       mimetype: z.string().min(1, 'Mimetype is required'),
       size: z.number().positive('File size must be positive'),
-      data: z.string().min(1, 'File data is required'), // Base64编码的文件数据
+      data: z.string().min(1, 'File data is required'), // Base64编码的文件数据或Data URI
     }))
     .mutation(async ({ input, ctx }) => {
+      // 处理 Data URI 格式 (data:image/png;base64,xxxxx)
+      let base64Data = input.data
+      if (base64Data.startsWith('data:')) {
+        // 去掉 data URI 前缀，只保留 Base64 数据
+        const base64Index = base64Data.indexOf('base64,')
+        if (base64Index !== -1) {
+          base64Data = base64Data.substring(base64Index + 7)
+        }
+      }
+
       // 将Base64编码的数据转换为Buffer
-      const buffer = Buffer.from(input.data, 'base64')
+      const buffer = Buffer.from(base64Data, 'base64')
 
       const file = await FileService.upload({
         filename: input.filename,

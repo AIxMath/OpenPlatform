@@ -2,7 +2,14 @@
 import type { BlogVisibility } from '../../../backend/src/service/blog'
 import { useRouter } from 'vitepress/client'
 import { ref, watch } from 'vue'
+import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
+
+const props = defineProps<Props>()
+
+const emit = defineEmits<Emits>()
+
+const authStore = useAuthStore()
 
 interface Props {
   show: boolean
@@ -12,8 +19,6 @@ interface Emits {
   (e: 'update:show', value: boolean): void
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
 const router = useRouter()
 
 const isCreating = ref(false)
@@ -75,9 +80,27 @@ async function handleCreate() {
   createErrorMessage.value = ''
 
   try {
+    // 获取最新的用户信息（包括个人资料）
+    const currentUser = await trpc.getMe.query()
+    const username = currentUser.username
+    const profile = currentUser.profile || {}
+
+    const defaultContent = `---
+author: ${username}
+avatar: ${profile.avatar || '/logo.png'}
+bio: ${profile.bio || '这个人很懒，什么都没有留下...'}
+email: ${profile.contactEmail || ''}
+github: ${profile.github || ''}
+---
+
+# ${newBlog.value.title}
+
+开始编写你的文章...
+`
+
     const result = await trpc.createBlog.mutate({
       title: newBlog.value.title,
-      content: `# ${newBlog.value.title}\n\n开始编写你的文章...`,
+      content: defaultContent,
       visibility: newBlog.value.visibility as BlogVisibility,
     })
 

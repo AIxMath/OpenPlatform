@@ -13,6 +13,16 @@ export enum UserRole {
 }
 
 /**
+ * 用户个人资料
+ */
+export interface UserProfile {
+  avatar?: string
+  bio?: string
+  github?: string
+  contactEmail?: string
+}
+
+/**
  * 用户接口定义
  */
 export interface User {
@@ -21,6 +31,7 @@ export interface User {
   email: string
   password: string
   role: UserRole
+  profile?: UserProfile
   createdAt: Date
   updatedAt: Date
 }
@@ -42,6 +53,7 @@ export interface UserResponse {
   username: string
   email: string
   role: UserRole
+  profile?: UserProfile
   createdAt: Date
   updatedAt: Date
 }
@@ -198,6 +210,28 @@ export class UserService {
       {
         $set: {
           ...updates,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: 'after' },
+    )
+
+    if (!result) {
+      throw new Error('User not found')
+    }
+
+    return this.removePassword(result)
+  }
+
+  /**
+   * 更新用户个人资料
+   */
+  static async updateProfile(id: string, profile: UserProfile): Promise<UserResponse> {
+    const result = await users.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          profile,
           updatedAt: new Date(),
         },
       },

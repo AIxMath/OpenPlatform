@@ -37,6 +37,11 @@ const blogStats = ref({
 })
 const isLoadingStats = ref(false)
 
+// 用户头像
+const userAvatar = computed(() => {
+  return (authStore.user as any)?.profile?.avatar || null
+})
+
 // 计算用户加入天数
 const joinedDays = computed(() => {
   if (!authStore.user?.createdAt)
@@ -168,6 +173,11 @@ function goToCreateBlog() {
   showCreateBlogDialog.value = true
 }
 
+// 导航到个人资料页面
+function goToProfile() {
+  router.go('/dash/profile')
+}
+
 // 导航到探索页面
 function goToExplore() {
   router.go('/dash/explore')
@@ -201,8 +211,11 @@ onMounted(() => {
       <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
         <div class="flex items-start justify-between mb-4">
           <div class="flex items-center gap-4">
-            <!-- 用户头像（使用首字母） -->
-            <div class="w-16 h-16 bg-gray-800 text-white rounded-full flex items-center justify-center text-2xl font-medium">
+            <!-- 用户头像 -->
+            <div v-if="userAvatar" class="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200">
+              <img :src="userAvatar" :alt="authStore.user?.username" class="w-full h-full object-cover">
+            </div>
+            <div v-else class="w-16 h-16 bg-gray-800 text-white rounded-full flex items-center justify-center text-2xl font-medium">
               {{ authStore.user?.username.charAt(0).toUpperCase() }}
             </div>
             <div>
@@ -333,6 +346,25 @@ onMounted(() => {
           账户设置
         </h2>
         <div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-200">
+          <!-- 编辑资料 -->
+          <button
+            class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+            @click="goToProfile"
+          >
+            <div class="flex items-center gap-3">
+              <div class="i-material-symbols:person-edit-outline w-5 h-5 text-gray-600" />
+              <div>
+                <div class="text-sm font-medium text-gray-800">
+                  编辑资料
+                </div>
+                <div class="text-xs text-gray-500">
+                  设置头像、个人简介等信息
+                </div>
+              </div>
+            </div>
+            <div class="i-material-symbols:chevron-right w-5 h-5 text-gray-400" />
+          </button>
+
           <!-- 修改密码 -->
           <button
             class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
