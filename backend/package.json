@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node --experimental-strip-types src/index.ts"
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "@trpc/server": "^11.6.0",
