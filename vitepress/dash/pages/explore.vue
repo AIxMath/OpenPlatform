@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vitepress/client'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 
@@ -25,8 +25,13 @@ const blogs = ref<Blog[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const totalPages = ref(0)
-const pageSize = 15
+const pageSize = 10
 const isLoading = ref(false)
+
+// 搜索相关
+const searchQuery = ref('')
+const isSearching = ref(false)
+const hasSearched = ref(false) // 标记是否已执行搜索
 
 // 计算显示的页码
 const displayPages = computed(() => {
@@ -77,11 +82,22 @@ const displayPages = computed(() => {
 async function loadBlogs() {
   isLoading.value = true
   try {
-    const response = await trpc.getPublicBlogs.query({
-      page: currentPage.value,
-      limit: pageSize,
-      excludeAdmin: true, // 排除admin用户
-    })
+    let response
+    // 根据是否有搜索词决定调用哪个接口
+    if (searchQuery.value.trim()) {
+      response = await trpc.searchPublicBlogs.query({
+        query: searchQuery.value.trim(),
+        page: currentPage.value,
+        limit: pageSize,
+      })
+    }
+    else {
+      response = await trpc.getPublicBlogs.query({
+        page: currentPage.value,
+        limit: pageSize,
+        excludeAdmin: true, // 排除admin用户
+      })
+    }
 
     blogs.value = response.blogs as any[]
     total.value = response.total
@@ -94,6 +110,37 @@ async function loadBlogs() {
     isLoading.value = false
   }
 }
+
+// 执行搜索
+async function handleSearch() {
+  isSearching.value = true
+  currentPage.value = 1 // 搜索时重置到第一页
+  await loadBlogs()
+  hasSearched.value = true // 标记已执行搜索
+  isSearching.value = false
+}
+
+// 清除搜索
+function clearSearch() {
+  searchQuery.value = ''
+  hasSearched.value = false
+  currentPage.value = 1
+  loadBlogs()
+}
+
+// 监听搜索框变化
+watch(searchQuery, (newValue, oldValue) => {
+  // 输入变化时，隐藏搜索结果提示
+  if (newValue !== oldValue && hasSearched.value) {
+    hasSearched.value = false
+  }
+
+  // 搜索框清空时，自动加载所有文章
+  if (!newValue.trim() && oldValue.trim()) {
+    currentPage.value = 1
+    loadBlogs()
+  }
+})
 
 // 跳转到指定页
 function goToPage(page: number) {
@@ -163,6 +210,48 @@ onMounted(() => {
         <p class="text-sm text-gray-500 mt-1">
           发现社区中的精彩内容 (共 {{ total }} 篇)
         </p>
+      </div>
+
+      <!-- 搜索框 -->
+      <div class="mb-6">
+        <div class="relative flex items-center gap-2">
+          <div class="relative flex-1">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索文章标题..."
+              class="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-all"
+              @keyup.enter="handleSearch"
+            >
+            <!-- 清除按钮 -->
+            <button
+              v-if="searchQuery"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              @click="clearSearch"
+            >
+              <div class="i-material-symbols:close w-5 h-5" />
+            </button>
+          </div>
+
+          <!-- 搜索按钮 -->
+          <button
+            :disabled="isSearching || !searchQuery.trim()"
+            class="px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            @click="handleSearch"
+          >
+            <div
+              v-if="isSearching"
+              class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+            />
+            <div v-else class="i-material-symbols:search w-5 h-5" />
+            <span>搜索</span>
+          </button>
+        </div>
+
+        <!-- 搜索提示 -->
+        <div v-if="hasSearched && searchQuery.trim()" class="mt-2 text-sm text-gray-600">
+          搜索结果：{{ total }} 篇文章包含 "{{ searchQuery }}"
+        </div>
       </div>
 
       <!-- 加载状态 -->

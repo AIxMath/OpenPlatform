@@ -6,9 +6,12 @@ import { markdownOptions } from './markdownOptions'
 export default defineConfig({
   title: 'AI x Math',
   cleanUrls: true, // 启用干净的 URL，不自动添加 .html 后缀
+  head: [
+    ['link', { rel: 'icon', href: '/icon.svg', type: 'image/svg+xml' }],
+  ],
   themeConfig: {
     siteTitle: 'AI x Math',
-    logo: '/logo.png',
+    logo: '/icon.svg',
     nav: [
     ],
   },

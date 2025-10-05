@@ -629,14 +629,14 @@ onUnmounted(() => {
       </button>
 
       <!-- 保存并预览 -->
-      <button
+      <!-- <button
         :disabled="isLoading || isSaving"
         class="toolbar-btn"
         title="保存并预览"
         @click="handleSaveAndPreview"
       >
         <div class="i-material-symbols:check w-5 h-5" />
-      </button>
+      </button> -->
 
       <div class="flex-1" />
 

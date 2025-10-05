@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- X symbol with white stroke and black fill -->
+  <g transform="translate(100, 100)">
+    <!-- First diagonal line (top-left to bottom-right) -->
+    <line x1="-55" y1="-55" x2="55" y2="55" 
+          stroke="#2B2422" 
+          stroke-width="35" 
+          stroke-linecap="round"/>
+    
+    <!-- Second diagonal line (top-right to bottom-left) -->
+    <line x1="55" y1="-55" x2="-55" y2="55" 
+          stroke="#2B2422" 
+          stroke-width="35" 
+          stroke-linecap="round"/>
+    
+    <!-- White outline effect -->
+    <line x1="-55" y1="-55" x2="55" y2="55" 
+          stroke="white" 
+          stroke-width="45" 
+          stroke-linecap="round"
+          opacity="1"
+          style="mix-blend-mode: normal"/>
+    
+    <line x1="55" y1="-55" x2="-55" y2="55" 
+          stroke="white" 
+          stroke-width="45" 
+          stroke-linecap="round"
+          opacity="1"
+          style="mix-blend-mode: normal"/>
+    
+    <!-- Black X on top -->
+    <line x1="-55" y1="-55" x2="55" y2="55" 
+          stroke="#2B2422" 
+          stroke-width="35" 
+          stroke-linecap="round"/>
+    
+    <line x1="55" y1="-55" x2="-55" y2="55" 
+          stroke="#2B2422" 
+          stroke-width="35" 
+          stroke-linecap="round"/>
+  </g>
+</svg>
