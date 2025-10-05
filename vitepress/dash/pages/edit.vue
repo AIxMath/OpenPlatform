@@ -13,7 +13,7 @@ const md = createMarkdownRenderer()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const documentId = ref<string>('')
+const documentSlug = ref<string>('')
 const content = ref('Loading...')
 const isLoading = ref(true)
 const isSaving = ref(false)
@@ -171,9 +171,9 @@ function insertDivider() {
 }
 
 // 加载文档内容
-async function loadDocument(id: string) {
+async function loadDocument(slug: string) {
   try {
-    const blog = await trpc.getBlogById.query({ blogId: id })
+    const blog = await trpc.getBlogBySlug.query({ slug })
     blogData.value = blog
     return blog.content
   }
@@ -189,16 +189,16 @@ async function save() {
     return
   }
 
-  if (!documentId.value) {
-    console.error('文档ID不存在')
+  if (!documentSlug.value) {
+    console.error('文档 slug 不存在')
     return
   }
 
   isSaving.value = true
 
   try {
-    await trpc.updateBlog.mutate({
-      blogId: documentId.value,
+    await trpc.updateBlogBySlug.mutate({
+      slug: documentSlug.value,
       content: content.value,
     })
 
@@ -219,16 +219,16 @@ async function handleSave() {
     return
   }
 
-  if (!documentId.value) {
-    showSaveMessage('文档ID不存在')
+  if (!documentSlug.value) {
+    showSaveMessage('文档 slug 不存在')
     return
   }
 
   isSaving.value = true
 
   try {
-    const result = await trpc.updateBlog.mutate({
-      blogId: documentId.value,
+    const result = await trpc.updateBlogBySlug.mutate({
+      slug: documentSlug.value,
       content: content.value,
     })
 
@@ -296,21 +296,21 @@ async function initDocument() {
     return
   }
 
-  const id = new URLSearchParams(window.location.search).get('id')
+  const slug = new URLSearchParams(window.location.search).get('slug')
 
-  if (!id) {
-    console.error('未找到文档ID')
-    content.value = `错误：未找到文档ID\n\n\n${DemoMarkdown}`
+  if (!slug) {
+    console.error('未找到文档 slug')
+    content.value = `错误：未找到文档 slug\n\n\n${DemoMarkdown}`
     isLoading.value = false
     return
   }
 
-  documentId.value = id
+  documentSlug.value = slug
   isLoading.value = true
   content.value = 'Loading...'
 
   try {
-    const doc = await loadDocument(id)
+    const doc = await loadDocument(slug)
     content.value = doc || ''
   }
   catch (error: any) {
@@ -326,7 +326,7 @@ async function initDocument() {
 onMounted(async () => {
   await initDocument()
   // 只在文档加载完成后才启动自动保存
-  if (!isLoading.value && documentId.value) {
+  if (!isLoading.value && documentSlug.value) {
     startAutoSave()
   }
 })

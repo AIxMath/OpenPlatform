@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useRouter } from 'vitepress/client'
 import { computed, onMounted, reactive, ref } from 'vue'
+import CreateBlogDialog from '../components/CreateBlogDialog.vue'
 import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+// 创建博客对话框
+const showCreateBlogDialog = ref(false)
 
 // 修改密码对话框
 const showPasswordDialog = ref(false)
@@ -159,10 +163,9 @@ function goToMyBlogs() {
   router.go('/dash/my-blogs')
 }
 
-// 导航到创建博客
+// 打开创建博客对话框
 function goToCreateBlog() {
-  router.go('/dash/my-blogs')
-  // 页面加载后会自动弹出创建对话框的逻辑由 my-blogs 页面处理
+  showCreateBlogDialog.value = true
 }
 
 // 导航到探索页面
@@ -271,7 +274,7 @@ onMounted(() => {
           <!-- 创建博客卡片 -->
           <button
             class="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-400 transition-all text-left group"
-            @click="goToMyBlogs"
+            @click="goToCreateBlog"
           >
             <div class="flex items-center gap-3 mb-3">
               <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-800 transition-colors">
@@ -514,6 +517,9 @@ onMounted(() => {
         </form>
       </div>
     </div>
+
+    <!-- 创建博客对话框 -->
+    <CreateBlogDialog v-model:show="showCreateBlogDialog" />
   </div>
 </template>
 

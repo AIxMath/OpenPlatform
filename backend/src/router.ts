@@ -199,6 +199,27 @@ export const appRouter = router({
     }),
 
   /**
+   * 通过 slug 更新博客（需要认证）
+   */
+  updateBlogBySlug: protectedProcedure
+    .input(z.object({
+      slug: z.string().min(1, 'Slug is required'),
+      title: z.string().min(1, 'Title is required').max(200, 'Title is too long').optional(),
+      content: z.string().min(1, 'Content is required').optional(),
+      visibility: z.nativeEnum(BlogVisibility).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { slug, ...updates } = input
+      const blog = await BlogService.updateBySlug(slug, ctx.user.userId, updates)
+
+      return {
+        success: true,
+        message: 'Blog updated successfully',
+        data: blog,
+      }
+    }),
+
+  /**
    * 切换博客可见性（需要认证）
    */
   toggleBlogVisibility: protectedProcedure
@@ -262,6 +283,21 @@ export const appRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const blog = await BlogService.findById(input.blogId, ctx.user.userId)
+      if (!blog) {
+        throw new Error('Blog not found')
+      }
+      return blog
+    }),
+
+  /**
+   * 根据 slug 获取博客（需要认证）
+   */
+  getBlogBySlug: protectedProcedure
+    .input(z.object({
+      slug: z.string().min(1, 'Slug is required'),
+    }))
+    .query(async ({ input, ctx }) => {
+      const blog = await BlogService.findBySlug(input.slug, ctx.user.userId)
       if (!blog) {
         throw new Error('Blog not found')
       }

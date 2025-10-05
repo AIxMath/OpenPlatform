@@ -147,6 +147,24 @@ export class BlogService {
   }
 
   /**
+   * 根据 slug 获取博客（需要用户认证）
+   */
+  static async findBySlug(slug: string, userId: string): Promise<BlogResponse | null> {
+    const blog = await blogs.findOne({ slug })
+
+    if (!blog) {
+      return null
+    }
+
+    // 如果是私有博客，只有作者本人可以查看
+    if (blog.visibility === BlogVisibility.PRIVATE && blog.authorId !== userId) {
+      throw new Error('You do not have permission to view this blog')
+    }
+
+    return this.toBlogResponse(blog)
+  }
+
+  /**
    * 获取用户的所有博客
    */
   static async findByAuthorId(
@@ -248,6 +266,69 @@ export class BlogService {
       page,
       totalPages: Math.ceil(total / limit),
     }
+  }
+
+  /**
+   * 通过 slug 更新博客
+   */
+  static async updateBySlug(
+    slug: string,
+    userId: string,
+    updates: UpdateBlogInput,
+  ): Promise<BlogResponse> {
+    const blog = await blogs.findOne({ slug })
+
+    if (!blog) {
+      throw new Error('Blog not found')
+    }
+
+    // 验证博客所有者
+    if (blog.authorId !== userId) {
+      throw new Error('You do not have permission to update this blog')
+    }
+
+    // 如果博客被pinned且要改为private，自动去掉pinned
+    const updateData: any = { ...updates, updatedAt: new Date() }
+    if (blog.pinned && updates.visibility === BlogVisibility.PRIVATE) {
+      updateData.pinned = false
+    }
+
+    // 处理 slug
+    const oldSlug = blog.slug || titleToSlug(blog.title) // 处理旧数据
+
+    // 写入文件系统以获取唯一的 slug
+    try {
+      const finalTitle = updates.title || blog.title
+      const finalContent = updates.content || blog.content
+      const { slug: newSlug } = await writeBlogToFile(blog.authorName, finalTitle, finalContent, oldSlug)
+
+      // 如果标题改变了或是旧数据，更新 slug
+      if (updates.title || !blog.slug) {
+        updateData.slug = newSlug
+      }
+    }
+    catch (error) {
+      console.error('Failed to write blog file:', error)
+      // 如果文件写入失败，仍然尝试更新数据库
+      if (updates.title) {
+        updateData.slug = titleToSlug(updates.title)
+      }
+      else if (!blog.slug) {
+        updateData.slug = titleToSlug(blog.title)
+      }
+    }
+
+    const result = await blogs.findOneAndUpdate(
+      { _id: blog._id },
+      { $set: updateData },
+      { returnDocument: 'after' },
+    )
+
+    if (!result) {
+      throw new Error('Failed to update blog')
+    }
+
+    return this.toBlogResponse(result)
   }
 
   /**

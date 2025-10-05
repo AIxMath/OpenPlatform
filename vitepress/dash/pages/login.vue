@@ -179,7 +179,7 @@ async function handleLogin() {
               class="text-gray-800 font-medium hover:underline inline-flex items-center gap-1"
             >
               立即注册
-              <div class="i-material-symbols:arrow-forward w-4 h-4" />
+              <span class="i-material-symbols:arrow-forward w-4 h-4" />
             </a>
           </p>
         </div>

@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { useRoute } from 'vitepress'
+import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import CreateBlogDialog from './CreateBlogDialog.vue'
 
 const authStore = useAuthStore()
 const route = useRoute()
 
+const showCreateDialog = ref(false)
+
 function isActive(path: string) {
   return route.path === path
+}
+
+function handleCreateBlog() {
+  showCreateDialog.value = true
 }
 </script>
 
@@ -34,15 +42,14 @@ function isActive(path: string) {
         <span>我的博客</span>
       </a>
 
-      <a
-        v-if="authStore.user"
-        href="/dash/edit"
+      <button
+        v-if="authStore.user && !isActive('/dash/edit')"
         class="nav-link nav-link-primary"
-        :class="{ active: isActive('/dash/edit') }"
+        @click="handleCreateBlog"
       >
         <div class="i-material-symbols:edit-outline w-4.5 h-4.5" />
         <span>写文章</span>
-      </a>
+      </button>
     </div>
 
     <!-- 用户按钮 -->
@@ -69,6 +76,9 @@ function isActive(path: string) {
         </a>
       </div>
     </div>
+
+    <!-- 创建博客对话框 -->
+    <CreateBlogDialog v-model:show="showCreateDialog" />
   </div>
 </template>
 
@@ -97,6 +107,9 @@ function isActive(path: string) {
   border-radius: 0.5rem;
   transition: all 0.2s;
   text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .nav-link:hover {
