@@ -4,6 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { createHTTPHandler } from '@trpc/server/adapters/standalone'
 import { contentType as mimeContentType, lookup as mimeLookup } from 'mime-types'
+import { extractToken, verifyToken } from './middleware/auth.js'
 import { appRouter } from './router'
 import { BlogService } from './service/blog.js'
 import { FileService } from './service/file.js'
@@ -42,6 +43,110 @@ function getContentType(filePath: string): string {
   return typeof ct === 'string' ? ct : 'application/octet-stream'
 }
 
+/**
+ * 从URL解析博客信息
+ * 返回: { username, slug } 或 null（如果不是博客URL）
+ */
+function parseBlogUrl(url: string): { username: string, slug: string } | null {
+  // 移除查询参数和哈希
+  const cleanUrl = url.split('?')[0].split('#')[0]
+
+  // 匹配 /{username}/blog/{slug}.html 格式
+  const userBlogMatch = cleanUrl.match(/^\/([^/]+)\/blog\/([^/]+)\.html$/)
+  if (userBlogMatch) {
+    return { username: userBlogMatch[1].toLowerCase(), slug: userBlogMatch[2] }
+  }
+
+  // 匹配 /{slug}.html 格式（admin用户）
+  const adminBlogMatch = cleanUrl.match(/^\/([^/]+)\.html$/)
+  if (adminBlogMatch && !cleanUrl.includes('/')) {
+    // 排除根路径和包含多个斜杠的路径
+    return { username: 'admin', slug: adminBlogMatch[1] }
+  }
+
+  return null
+}
+
+/**
+ * 从Cookie字符串中提取token
+ */
+function extractTokenFromCookie(cookieHeader?: string): string | null {
+  if (!cookieHeader) {
+    return null
+  }
+
+  const cookies = cookieHeader.split(';').map(c => c.trim())
+  for (const cookie of cookies) {
+    const [name, value] = cookie.split('=')
+    if (name === 'token' && value) {
+      return value
+    }
+  }
+
+  return null
+}
+
+/**
+ * 检查用户是否有权访问博客
+ * 返回 true 表示允许访问，false 表示拒绝（应返回404）
+ */
+async function checkBlogAccess(
+  username: string,
+  slug: string,
+  req: http.IncomingMessage,
+): Promise<boolean> {
+  try {
+    // 从数据库查找博客
+    const blogsCollection = (await import('./database.js')).db.collection('blogs')
+    const blog = await blogsCollection.findOne({
+      authorName: new RegExp(`^${username}$`, 'i'), // 不区分大小写
+      slug,
+    })
+
+    if (!blog) {
+      // 博客不存在，允许继续（会返回404）
+      return true
+    }
+
+    // 如果是公开博客，允许所有人访问
+    if (blog.visibility === 'public') {
+      return true
+    }
+
+    // 私有博客，需要验证身份
+    // 先尝试从 Authorization header 获取 token
+    let token = extractToken(req.headers.authorization)
+
+    // 如果没有，尝试从 Cookie 中获取
+    if (!token) {
+      token = extractTokenFromCookie(req.headers.cookie)
+    }
+
+    if (!token) {
+      // 没有token，返回false（当作404处理）
+      return false
+    }
+
+    try {
+      const user = verifyToken(token)
+      // 只有作者本人可以访问私有博客
+      if (user.userId === blog.authorId.toString()) {
+        return true
+      }
+      // 不是作者，返回false（当作404处理）
+      return false
+    }
+    catch {
+      // token无效，返回false（当作404处理）
+      return false
+    }
+  }
+  catch (error) {
+    console.error('Error checking blog access:', error)
+    return false
+  }
+}
+
 function serveUploadedFile(req: http.IncomingMessage, res: http.ServerResponse) {
   const url = req.url || '/'
   // Extract filename from /files/filename
@@ -72,7 +177,7 @@ function serveUploadedFile(req: http.IncomingMessage, res: http.ServerResponse) 
   }
 }
 
-function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
+async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   // Normalize and prevent path traversal
   const url = req.url || '/'
   if (url === '/' || url === '') {
@@ -86,6 +191,19 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
       res.end('index.html not found')
     }
     return
+  }
+
+  // 检查是否是博客URL，如果是则进行权限验证
+  const blogInfo = parseBlogUrl(url)
+  if (blogInfo) {
+    const hasAccess = await checkBlogAccess(blogInfo.username, blogInfo.slug, req)
+
+    if (!hasAccess) {
+      // 未授权访问私有博客，返回404（不暴露博客是否存在）
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('Not Found')
+      return
+    }
   }
 
   const safePath = path.normalize(url).replace(/^\/+/, '') // remove leading slashes
@@ -109,7 +227,7 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) {
   }
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   // CORS headers
   const origin = req.headers.origin
   const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173']
@@ -144,7 +262,7 @@ const server = http.createServer((req, res) => {
     return
   }
   if (req.method === 'GET' || req.method === 'HEAD') {
-    return serveStatic(req, res)
+    return await serveStatic(req, res)
   }
   res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' })
   res.end('Method Not Allowed')

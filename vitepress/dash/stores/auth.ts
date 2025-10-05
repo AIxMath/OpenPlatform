@@ -27,6 +27,12 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = newUser
     localStorage.setItem('auth_token', newToken)
     localStorage.setItem('auth_user', JSON.stringify(newUser))
+
+    // 同时设置 Cookie，使浏览器访问博客时能够携带认证信息
+    // 设置过期时间为7天
+    const expires = new Date()
+    expires.setDate(expires.getDate() + 7)
+    document.cookie = `token=${newToken}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
   }
 
   // 清除认证信息（登出）
@@ -35,6 +41,9 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
+
+    // 清除 Cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   }
 
   // 登出
