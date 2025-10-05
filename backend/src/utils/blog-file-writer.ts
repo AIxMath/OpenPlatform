@@ -1,7 +1,54 @@
+import { exec } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { promisify } from 'node:util'
 import { pinyin } from 'pinyin-pro'
+
+const execAsync = promisify(exec)
+
+// 部署状态管理
+let deployTimeout: NodeJS.Timeout | null = null
+let isDeploying = false
+
+/**
+ * 执行部署脚本（防抖处理，避免频繁构建）
+ * 在博客文件变化后延迟3秒执行，如果3秒内有新的变化则重新计时
+ */
+async function triggerDeploy() {
+  // 清除之前的定时器
+  if (deployTimeout) {
+    clearTimeout(deployTimeout)
+  }
+
+  // 设置新的定时器
+  deployTimeout = setTimeout(async () => {
+    if (isDeploying)
+      return
+
+    isDeploying = true
+
+    try {
+      const projectRoot = path.join(process.cwd(), '..')
+      const deployScript = path.join(projectRoot, 'deploy.sh')
+
+      // 执行 deploy.sh
+      const { stdout, stderr } = await execAsync(`bash ${deployScript}`, {
+        cwd: projectRoot,
+        timeout: 300000, // 5分钟超时
+      })
+
+      if (stderr)
+        console.error('Build stderr:', stderr)
+    }
+    catch (error: any) {
+      console.error('Deploy failed:', error.message)
+    }
+    finally {
+      isDeploying = false
+    }
+  }, 3000) // 3秒防抖延迟
+}
 
 /**
  * 将博客标题转换为 URL 友好的 slug
@@ -127,6 +174,9 @@ export async function writeBlogToFile(
 
   fs.writeFileSync(filePath, content, 'utf-8')
 
+  // 触发部署（异步，不等待完成）
+  triggerDeploy().catch(err => console.error('Failed to trigger deploy:', err))
+
   return { slug, filePath }
 }
 
@@ -139,6 +189,9 @@ export async function deleteBlogFile(username: string, slug: string): Promise<vo
   if (fs.existsSync(filePath)) {
     try {
       fs.unlinkSync(filePath)
+
+      // 触发部署（异步，不等待完成）
+      triggerDeploy().catch(err => console.error('Failed to trigger deploy:', err))
     }
     catch (error) {
       console.error('Failed to delete blog file:', error)

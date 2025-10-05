@@ -36,7 +36,7 @@ const trpcHandler = createHTTPHandler({
 
 // Static files directory (dist). By default relative to backend working directory.
 // If you build frontend in ../frontend/dist you can copy or symlink it to ./dist.
-const staticDir = path.resolve(import.meta.dirname, '../../vitepress/.vitepress/dist')
+const staticDir = path.resolve(import.meta.dirname, '../dist')
 const uploadDir = path.resolve(process.env.UPLOAD_DIR || './uploads')
 
 function getContentType(filePath: string): string {
