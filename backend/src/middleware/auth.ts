@@ -1,4 +1,4 @@
-import type { UserRole } from '../service/user.js'
+import type { UserRole } from '../service/user.ts'
 import process from 'node:process'
 import { TRPCError } from '@trpc/server'
 import jwt from 'jsonwebtoken'
