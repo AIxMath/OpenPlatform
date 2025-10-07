@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import http from 'node:http'
+import https from 'node:https'
 import path from 'node:path'
 import process from 'node:process'
 import { createHTTPHandler } from '@trpc/server/adapters/standalone'
@@ -274,7 +275,8 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
   }
 }
 
-const server = http.createServer(async (req, res) => {
+// Request handler for both HTTP and HTTPS
+async function requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
   // CORS headers
   const origin = req.headers.origin
   const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173', 'http://aixmath.org', 'https://aixmath.org', 'http://www.aixmath.org', 'https://www.aixmath.org']
@@ -313,16 +315,61 @@ const server = http.createServer(async (req, res) => {
   }
   res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' })
   res.end('Method Not Allowed')
-})
+}
 
 async function main() {
   await initializeDatabase()
 
   const port = Number(process.env.PORT) || 3000
-  server.listen(port, () => {
-    console.log(`Server listening on http://localhost:${port}`)
-    console.log(`tRPC endpoint mounted at http://localhost:${port}/api`)
-    console.log(`Serving static files from: ${staticDir}`)
-  })
+  const sslKeyPath = process.env.SSL_KEY_PATH
+  const sslCertPath = process.env.SSL_CERT_PATH
+
+  let server: http.Server | https.Server
+
+  // 如果提供了 SSL 证书，则使用 HTTPS，否则使用 HTTP
+  if (sslKeyPath && sslCertPath) {
+    try {
+      const sslOptions: https.ServerOptions = {
+        key: fs.readFileSync(sslKeyPath),
+        cert: fs.readFileSync(sslCertPath),
+      }
+
+      // 可选：如果有 CA 证书链
+      if (process.env.SSL_CA_PATH) {
+        sslOptions.ca = fs.readFileSync(process.env.SSL_CA_PATH)
+      }
+
+      server = https.createServer(sslOptions, requestHandler)
+
+      server.listen(port, () => {
+        console.log(`🔒 HTTPS Server listening on https://localhost:${port}`)
+        console.log(`🔒 tRPC endpoint mounted at https://localhost:${port}/api`)
+        console.log(`📁 Serving static files from: ${staticDir}`)
+        console.log(`🔑 SSL Key: ${sslKeyPath}`)
+        console.log(`📜 SSL Cert: ${sslCertPath}`)
+      })
+    }
+    catch (error) {
+      console.error('❌ Failed to load SSL certificates:', error)
+      console.error('📌 Falling back to HTTP server')
+      server = http.createServer(requestHandler)
+      server.listen(port, () => {
+        console.log(`⚠️  HTTP Server listening on http://localhost:${port}`)
+        console.log(`📡 tRPC endpoint mounted at http://localhost:${port}/api`)
+        console.log(`📁 Serving static files from: ${staticDir}`)
+      })
+    }
+  }
+  else {
+    server = http.createServer(requestHandler)
+    server.listen(port, () => {
+      console.log(`📡 HTTP Server listening on http://localhost:${port}`)
+      console.log(`📡 tRPC endpoint mounted at http://localhost:${port}/api`)
+      console.log(`📁 Serving static files from: ${staticDir}`)
+      if (!sslKeyPath || !sslCertPath) {
+        console.log(`💡 Tip: Set SSL_KEY_PATH and SSL_CERT_PATH environment variables to enable HTTPS`)
+      }
+    })
+  }
 }
 main()
