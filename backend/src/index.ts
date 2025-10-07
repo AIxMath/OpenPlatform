@@ -279,7 +279,7 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
 async function requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
   // CORS headers
   const origin = req.headers.origin
-  const allowedOrigins = ['http://localhost:5174', 'http://localhost:5173', 'http://aixmath.org', 'https://aixmath.org', 'http://www.aixmath.org', 'https://www.aixmath.org']
+  const allowedOrigins = ['https://aixmath.org', 'https://www.aixmath.org']
 
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin)
