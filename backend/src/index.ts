@@ -321,8 +321,10 @@ async function main() {
   await initializeDatabase()
 
   const port = Number(process.env.PORT) || 3000
+  const httpPort = Number(process.env.HTTP_PORT) || 80
   const sslKeyPath = process.env.SSL_KEY_PATH
   const sslCertPath = process.env.SSL_CERT_PATH
+  const httpsRedirect = process.env.HTTPS_REDIRECT !== 'false' // 默认启用重定向
 
   let server: http.Server | https.Server
 
@@ -348,6 +350,23 @@ async function main() {
         console.log(`🔑 SSL Key: ${sslKeyPath}`)
         console.log(`📜 SSL Cert: ${sslCertPath}`)
       })
+
+      // 启动 HTTP 重定向服务器
+      if (httpsRedirect && httpPort !== port) {
+        const redirectServer = http.createServer((req, res) => {
+          const host = req.headers.host?.split(':')[0] || 'localhost'
+          const targetPort = port === 443 ? '' : `:${port}`
+          const redirectUrl = `https://${host}${targetPort}${req.url}`
+
+          res.writeHead(301, { Location: redirectUrl })
+          res.end()
+        })
+
+        redirectServer.listen(httpPort, () => {
+          console.log(`🔀 HTTP Redirect Server listening on http://localhost:${httpPort}`)
+          console.log(`   → Redirecting all HTTP traffic to HTTPS`)
+        })
+      }
     }
     catch (error) {
       console.error('❌ Failed to load SSL certificates:', error)
