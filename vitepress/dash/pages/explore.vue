@@ -165,8 +165,17 @@ function formatDate(dateString: string) {
 
 // 获取内容预览
 function getContentPreview(content: string) {
+  // 去除 YAML header（如果有的话）
+  let processedContent = content
+  if (content.startsWith('---')) {
+    const endOfYaml = content.indexOf('---', 3)
+    if (endOfYaml !== -1) {
+      processedContent = content.substring(endOfYaml + 3).trim()
+    }
+  }
+  
   // 移除 Markdown 标记，获取纯文本
-  const plainText = content
+  const plainText = processedContent
     .replace(/[#*`>\-[\]()]/g, '')
     .replace(/\n+/g, ' ')
     .trim()
