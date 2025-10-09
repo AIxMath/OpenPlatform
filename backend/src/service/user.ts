@@ -226,15 +226,29 @@ export class UserService {
   /**
    * 更新用户个人资料
    */
-  static async updateProfile(id: string, profile: UserProfile): Promise<UserResponse> {
+  static async updateProfile(id: string, profile: Partial<UserProfile>): Promise<UserResponse> {
+    // 构建更新对象，只更新传入的字段
+    const updateFields: Record<string, any> = {
+      updatedAt: new Date(),
+    }
+
+    // 使用点记法来只更新传入的字段
+    if (profile.avatar !== undefined) {
+      updateFields['profile.avatar'] = profile.avatar
+    }
+    if (profile.bio !== undefined) {
+      updateFields['profile.bio'] = profile.bio
+    }
+    if (profile.github !== undefined) {
+      updateFields['profile.github'] = profile.github
+    }
+    if (profile.contactEmail !== undefined) {
+      updateFields['profile.contactEmail'] = profile.contactEmail
+    }
+
     const result = await users.findOneAndUpdate(
       { _id: new ObjectId(id) },
-      {
-        $set: {
-          profile,
-          updatedAt: new Date(),
-        },
-      },
+      { $set: updateFields },
       { returnDocument: 'after' },
     )
 
