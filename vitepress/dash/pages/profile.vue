@@ -234,9 +234,8 @@ function goBack() {
 }
 
 onMounted(async () => {
-  // 检查是否登录
-  if (!authStore.isAuthenticated) {
-    router.go('/dash/login')
+  if (!authStore.isAdmin) {
+    router.go('/login')
     return
   }
 

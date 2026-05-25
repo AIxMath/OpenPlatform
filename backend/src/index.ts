@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import http from 'node:http'
-import https from 'node:https'
 import path from 'node:path'
 import process from 'node:process'
 import { createHTTPHandler } from '@trpc/server/adapters/standalone'
@@ -279,7 +278,7 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
 async function requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
   // CORS headers
   const origin = req.headers.origin
-  const allowedOrigins = ['https://aixmath.org', 'https://www.aixmath.org']
+  const allowedOrigins = ['https://news.aixmath.org', 'https://aixmath.org', 'https://www.aixmath.org']
 
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin)
@@ -321,74 +320,12 @@ async function main() {
   await initializeDatabase()
 
   const port = Number(process.env.PORT) || 3000
-  const httpPort = Number(process.env.HTTP_PORT) || 80
-  const sslKeyPath = process.env.SSL_KEY_PATH
-  const sslCertPath = process.env.SSL_CERT_PATH
-  const httpsRedirect = process.env.HTTPS_REDIRECT !== 'false' // 默认启用重定向
 
-  let server: http.Server | https.Server
-
-  // 如果提供了 SSL 证书，则使用 HTTPS，否则使用 HTTP
-  if (sslKeyPath && sslCertPath) {
-    try {
-      const sslOptions: https.ServerOptions = {
-        key: fs.readFileSync(sslKeyPath),
-        cert: fs.readFileSync(sslCertPath),
-      }
-
-      // 可选：如果有 CA 证书链
-      if (process.env.SSL_CA_PATH) {
-        sslOptions.ca = fs.readFileSync(process.env.SSL_CA_PATH)
-      }
-
-      server = https.createServer(sslOptions, requestHandler)
-
-      server.listen(port, () => {
-        console.log(`🔒 HTTPS Server listening on https://localhost:${port}`)
-        console.log(`🔒 tRPC endpoint mounted at https://localhost:${port}/api`)
-        console.log(`📁 Serving static files from: ${staticDir}`)
-        console.log(`🔑 SSL Key: ${sslKeyPath}`)
-        console.log(`📜 SSL Cert: ${sslCertPath}`)
-      })
-
-      // 启动 HTTP 重定向服务器
-      if (httpsRedirect && httpPort !== port) {
-        const redirectServer = http.createServer((req, res) => {
-          const host = req.headers.host?.split(':')[0] || 'localhost'
-          const targetPort = port === 443 ? '' : `:${port}`
-          const redirectUrl = `https://${host}${targetPort}${req.url}`
-
-          res.writeHead(301, { Location: redirectUrl })
-          res.end()
-        })
-
-        redirectServer.listen(httpPort, () => {
-          console.log(`🔀 HTTP Redirect Server listening on http://localhost:${httpPort}`)
-          console.log(`   → Redirecting all HTTP traffic to HTTPS`)
-        })
-      }
-    }
-    catch (error) {
-      console.error('❌ Failed to load SSL certificates:', error)
-      console.error('📌 Falling back to HTTP server')
-      server = http.createServer(requestHandler)
-      server.listen(port, () => {
-        console.log(`⚠️  HTTP Server listening on http://localhost:${port}`)
-        console.log(`📡 tRPC endpoint mounted at http://localhost:${port}/api`)
-        console.log(`📁 Serving static files from: ${staticDir}`)
-      })
-    }
-  }
-  else {
-    server = http.createServer(requestHandler)
-    server.listen(port, () => {
-      console.log(`📡 HTTP Server listening on http://localhost:${port}`)
-      console.log(`📡 tRPC endpoint mounted at http://localhost:${port}/api`)
-      console.log(`📁 Serving static files from: ${staticDir}`)
-      if (!sslKeyPath || !sslCertPath) {
-        console.log(`💡 Tip: Set SSL_KEY_PATH and SSL_CERT_PATH environment variables to enable HTTPS`)
-      }
-    })
-  }
+  const server = http.createServer(requestHandler)
+  server.listen(port, '127.0.0.1', () => {
+    console.log(`📡 HTTP Server listening on http://127.0.0.1:${port}`)
+    console.log(`📡 tRPC endpoint mounted at http://127.0.0.1:${port}/api`)
+    console.log(`📁 Serving static files from: ${staticDir}`)
+  })
 }
 main()

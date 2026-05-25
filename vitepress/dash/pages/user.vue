@@ -147,7 +147,7 @@ async function handleChangePassword() {
 
     // 登出并跳转到登录页
     authStore.logout()
-    router.go('/dash/login')
+    router.go('/login')
   }
   catch (error: any) {
     console.error('修改密码失败:', error)
@@ -161,7 +161,7 @@ async function handleChangePassword() {
 // 登出
 function handleLogout() {
   authStore.logout()
-  router.go('/dash/login')
+  router.go('/login')
 }
 
 // 导航到我的博客
@@ -185,9 +185,8 @@ function goToExplore() {
 }
 
 onMounted(async () => {
-  // 检查是否登录
-  if (!authStore.isAuthenticated) {
-    router.go('/dash/login')
+  if (!authStore.isAdmin) {
+    router.go('/login')
     return
   }
 
@@ -212,10 +211,10 @@ onMounted(async () => {
       <!-- 页面标题 -->
       <div class="mb-6">
         <h1 class="text-2xl font-light text-gray-800">
-          用户中心
+          管理员中心
         </h1>
         <p class="text-sm text-gray-500 mt-1">
-          管理你的账户和内容
+          管理站点内容和账户设置
         </p>
       </div>
 
@@ -241,7 +240,7 @@ onMounted(async () => {
                   :class="authStore.isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'"
                   class="px-2 py-0.5 text-xs rounded-full"
                 >
-                  {{ authStore.isAdmin ? '管理员' : '用户' }}
+                  管理员
                 </span>
                 <span class="text-xs text-gray-500">
                   加入 {{ joinedDays }} 天
@@ -323,11 +322,11 @@ onMounted(async () => {
                 <div class="i-material-symbols:article-outline w-6 h-6 text-gray-600 group-hover:text-white" />
               </div>
               <h3 class="text-lg font-medium text-gray-800">
-                我的博客
+                内容管理
               </h3>
             </div>
             <p class="text-sm text-gray-600">
-              管理和编辑你的所有博客文章
+              管理和编辑全站文章
             </p>
           </button>
 
@@ -345,7 +344,7 @@ onMounted(async () => {
               </h3>
             </div>
             <p class="text-sm text-gray-600">
-              发现社区中其他用户的精彩内容
+              查看公开展示的文章列表
             </p>
           </button>
         </div>

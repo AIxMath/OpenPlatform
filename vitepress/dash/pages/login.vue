@@ -58,7 +58,6 @@ async function handleLogin() {
     // 保存 token 和用户信息
     authStore.setAuth(response.token, response.user as any)
 
-    // 登录成功后跳转到个人主页
     router.go('/dash/user')
   }
   catch (error: any) {
@@ -77,10 +76,10 @@ async function handleLogin() {
       <!-- 标题区域 -->
       <div class="text-center mb-8">
         <h1 class="text-3xl font-light text-gray-800 mb-2">
-          登录
+          管理员登录
         </h1>
         <p class="text-sm text-gray-500">
-          欢迎回来，请登录您的账户
+          请输入管理员账户继续
         </p>
       </div>
 
@@ -159,30 +158,6 @@ async function handleLogin() {
             <span>{{ isLoading ? '登录中...' : '登录' }}</span>
           </button>
         </form>
-
-        <!-- 分割线 -->
-        <div class="relative my-6">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200" />
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-4 bg-white text-gray-500">或</span>
-          </div>
-        </div>
-
-        <!-- 注册链接 -->
-        <div class="text-center">
-          <p class="text-sm text-gray-600">
-            还没有账户？
-            <a
-              href="/dash/register"
-              class="text-gray-800 font-medium hover:underline inline-flex items-center gap-1"
-            >
-              立即注册
-              <span class="i-material-symbols:arrow-forward w-4 h-4" />
-            </a>
-          </p>
-        </div>
       </div>
     </div>
   </div>

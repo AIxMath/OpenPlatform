@@ -1,11 +1,6 @@
 <script setup lang="ts">
-import { useRouter } from 'vitepress/client'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useAuthStore } from '../stores/auth'
 import { trpc } from '../trpc'
-
-const router = useRouter()
-const authStore = useAuthStore()
 
 interface Blog {
   _id: string
@@ -95,7 +90,6 @@ async function loadBlogs() {
       response = await trpc.getPublicBlogs.query({
         page: currentPage.value,
         limit: pageSize,
-        excludeAdmin: true, // 排除admin用户
       })
     }
 
@@ -173,7 +167,7 @@ function getContentPreview(content: string) {
       processedContent = content.substring(endOfYaml + 3).trim()
     }
   }
-  
+
   // 移除 Markdown 标记，获取纯文本
   const plainText = processedContent
     .replace(/[#*`>\-[\]()]/g, '')
@@ -198,12 +192,6 @@ function handleView(blog: Blog) {
 }
 
 onMounted(() => {
-  // 检查是否登录
-  if (!authStore.isAuthenticated) {
-    router.go('/dash/login')
-    return
-  }
-
   loadBlogs()
 })
 </script>

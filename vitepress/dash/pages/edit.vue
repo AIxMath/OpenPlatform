@@ -246,8 +246,7 @@ async function handleImageUpload(file: File) {
     })
 
     // 插入 Markdown 图片语法
-    const imageUrl = `https://aixmath.org${response.data.url}`
-    editorRef.value?.insertText(`![${file.name}](${imageUrl})`)
+    editorRef.value?.insertText(`![${file.name}](https://news.aixmath.org${response.data.url})`)
 
     showSaveMessage('图片上传成功')
   }
@@ -407,9 +406,8 @@ function stopAutoSave() {
 
 // 初始化加载文档
 async function initDocument() {
-  // 检查是否登录
-  if (!authStore.isAuthenticated) {
-    useRouter().go('/dash/login')
+  if (!authStore.isAdmin) {
+    router.go('/login')
     return
   }
 

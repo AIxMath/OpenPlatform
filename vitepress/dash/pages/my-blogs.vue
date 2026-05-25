@@ -221,9 +221,8 @@ async function handleDelete() {
 }
 
 onMounted(() => {
-  // 检查是否登录
-  if (!authStore.isAuthenticated) {
-    router.go('/dash/login')
+  if (!authStore.isAdmin) {
+    router.go('/login')
     return
   }
 
@@ -238,10 +237,10 @@ onMounted(() => {
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-2xl font-light text-gray-800">
-            我的文章
+            内容管理
           </h1>
           <p class="text-sm text-gray-500 mt-1">
-            共 {{ total }} 篇文章
+            管理全站共 {{ total }} 篇文章
           </p>
         </div>
         <button

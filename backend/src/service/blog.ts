@@ -131,7 +131,7 @@ export class BlogService {
   /**
    * 根据ID获取博客
    */
-  static async findById(id: string, userId?: string): Promise<BlogResponse | null> {
+  static async findById(id: string, userId?: string, canManageAll = false): Promise<BlogResponse | null> {
     const blog = await blogs.findOne({ _id: new ObjectId(id) })
 
     if (!blog) {
@@ -139,7 +139,7 @@ export class BlogService {
     }
 
     // 如果是私有博客，只有作者本人可以查看
-    if (blog.visibility === BlogVisibility.PRIVATE && blog.authorId !== userId) {
+    if (!canManageAll && blog.visibility === BlogVisibility.PRIVATE && blog.authorId !== userId) {
       throw new Error('You do not have permission to view this blog')
     }
 
@@ -149,7 +149,7 @@ export class BlogService {
   /**
    * 根据 slug 获取博客（需要用户认证）
    */
-  static async findBySlug(slug: string, userId: string): Promise<BlogResponse | null> {
+  static async findBySlug(slug: string, userId: string, canManageAll = false): Promise<BlogResponse | null> {
     const blog = await blogs.findOne({ slug })
 
     if (!blog) {
@@ -157,7 +157,7 @@ export class BlogService {
     }
 
     // 如果是私有博客，只有作者本人可以查看
-    if (blog.visibility === BlogVisibility.PRIVATE && blog.authorId !== userId) {
+    if (!canManageAll && blog.visibility === BlogVisibility.PRIVATE && blog.authorId !== userId) {
       throw new Error('You do not have permission to view this blog')
     }
 
@@ -275,6 +275,7 @@ export class BlogService {
     slug: string,
     userId: string,
     updates: UpdateBlogInput,
+    canManageAll = false,
   ): Promise<BlogResponse> {
     const blog = await blogs.findOne({ slug })
 
@@ -283,7 +284,7 @@ export class BlogService {
     }
 
     // 验证博客所有者
-    if (blog.authorId !== userId) {
+    if (!canManageAll && blog.authorId !== userId) {
       throw new Error('You do not have permission to update this blog')
     }
 
@@ -338,6 +339,7 @@ export class BlogService {
     id: string,
     userId: string,
     updates: UpdateBlogInput,
+    canManageAll = false,
   ): Promise<BlogResponse> {
     const blog = await blogs.findOne({ _id: new ObjectId(id) })
 
@@ -346,7 +348,7 @@ export class BlogService {
     }
 
     // 验证博客所有者
-    if (blog.authorId !== userId) {
+    if (!canManageAll && blog.authorId !== userId) {
       throw new Error('You do not have permission to update this blog')
     }
 
@@ -397,7 +399,7 @@ export class BlogService {
   /**
    * 切换博客可见性
    */
-  static async toggleVisibility(id: string, userId: string): Promise<BlogResponse> {
+  static async toggleVisibility(id: string, userId: string, canManageAll = false): Promise<BlogResponse> {
     const blog = await blogs.findOne({ _id: new ObjectId(id) })
 
     if (!blog) {
@@ -405,7 +407,7 @@ export class BlogService {
     }
 
     // 验证博客所有者
-    if (blog.authorId !== userId) {
+    if (!canManageAll && blog.authorId !== userId) {
       throw new Error('You do not have permission to update this blog')
     }
 
@@ -435,7 +437,7 @@ export class BlogService {
   /**
    * 删除博客
    */
-  static async delete(id: string, userId: string): Promise<void> {
+  static async delete(id: string, userId: string, canManageAll = false): Promise<void> {
     const blog = await blogs.findOne({ _id: new ObjectId(id) })
 
     if (!blog) {
@@ -443,7 +445,7 @@ export class BlogService {
     }
 
     // 验证博客所有者
-    if (blog.authorId !== userId) {
+    if (!canManageAll && blog.authorId !== userId) {
       throw new Error('You do not have permission to delete this blog')
     }
 
@@ -553,6 +555,46 @@ export class BlogService {
       {
         $match: { authorId },
       },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          public: {
+            $sum: {
+              $cond: [{ $eq: ['$visibility', BlogVisibility.PUBLIC] }, 1, 0],
+            },
+          },
+          private: {
+            $sum: {
+              $cond: [{ $eq: ['$visibility', BlogVisibility.PRIVATE] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]
+
+    const result = await blogs.aggregate(pipeline).toArray()
+
+    if (result.length === 0) {
+      return { total: 0, public: 0, private: 0 }
+    }
+
+    return {
+      total: result[0].total,
+      public: result[0].public,
+      private: result[0].private,
+    }
+  }
+
+  /**
+   * 获取全站博客统计信息（管理员专用）
+   */
+  static async getStatsAll(): Promise<{
+    total: number
+    public: number
+    private: number
+  }> {
+    const pipeline = [
       {
         $group: {
           _id: null,

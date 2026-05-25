@@ -1,8 +1,9 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { generateToken } from './middleware/auth.ts'
 import { BlogService, BlogVisibility } from './service/blog.ts'
 import { FileService } from './service/file.ts'
-import { UserService } from './service/user.ts'
+import { UserRole, UserService } from './service/user.ts'
 import { adminProcedure, protectedProcedure, publicProcedure, router } from './trpc.ts'
 
 /**
@@ -28,13 +29,11 @@ export const appRouter = router({
           'Password must contain at least one uppercase letter, one lowercase letter, and one number',
         ),
     }))
-    .mutation(async ({ input }) => {
-      const user = await UserService.register(input)
-      return {
-        success: true,
-        message: 'User registered successfully',
-        data: user,
-      }
+    .mutation(async () => {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Public registration is disabled',
+      })
     }),
 
   /**
@@ -47,6 +46,13 @@ export const appRouter = router({
     }))
     .mutation(async ({ input }) => {
       const user = await UserService.login(input.usernameOrEmail, input.password)
+      if (user.role !== UserRole.ADMIN) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only administrators can log in',
+        })
+      }
+
       const token = generateToken({
         userId: user._id.toString(),
         username: user.username,
@@ -75,7 +81,7 @@ export const appRouter = router({
   /**
    * 修改密码（需要认证）
    */
-  changePassword: protectedProcedure
+  changePassword: adminProcedure
     .input(z.object({
       oldPassword: z.string().min(1, 'Old password is required'),
       newPassword: z
@@ -97,7 +103,7 @@ export const appRouter = router({
   /**
    * 更新用户个人资料（需要认证）
    */
-  updateProfile: protectedProcedure
+  updateProfile: adminProcedure
     .input(z.object({
       avatar: z.string().optional(),
       bio: z.string().max(500, 'Bio is too long').optional(),
@@ -116,7 +122,7 @@ export const appRouter = router({
   /**
    * 上传文件（需要认证）
    */
-  uploadFile: protectedProcedure
+  uploadFile: adminProcedure
     .input(z.object({
       filename: z.string().min(1, 'Filename is required'),
       mimetype: z.string().min(1, 'Mimetype is required'),
@@ -155,7 +161,7 @@ export const appRouter = router({
   /**
    * 获取我的文件列表（需要认证）
    */
-  getMyFiles: protectedProcedure
+  getMyFiles: adminProcedure
     .input(z.object({
       page: z.number().int().positive().default(1),
       limit: z.number().int().positive().max(100).default(20),
@@ -169,7 +175,7 @@ export const appRouter = router({
   /**
    * 删除文件（需要认证）
    */
-  deleteFile: protectedProcedure
+  deleteFile: adminProcedure
     .input(z.object({
       fileId: z.string().min(1, 'File ID is required'),
     }))
@@ -184,7 +190,7 @@ export const appRouter = router({
   /**
    * 创建博客（需要认证）
    */
-  createBlog: protectedProcedure
+  createBlog: adminProcedure
     .input(z.object({
       title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
       content: z.string().min(1, 'Content is required'),
@@ -209,7 +215,7 @@ export const appRouter = router({
   /**
    * 更新博客（需要认证）
    */
-  updateBlog: protectedProcedure
+  updateBlog: adminProcedure
     .input(z.object({
       blogId: z.string().min(1, 'Blog ID is required'),
       title: z.string().min(1, 'Title is required').max(200, 'Title is too long').optional(),
@@ -218,7 +224,7 @@ export const appRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { blogId, ...updates } = input
-      const blog = await BlogService.update(blogId, ctx.user.userId, updates)
+      const blog = await BlogService.update(blogId, ctx.user.userId, updates, true)
 
       return {
         success: true,
@@ -230,7 +236,7 @@ export const appRouter = router({
   /**
    * 通过 slug 更新博客（需要认证）
    */
-  updateBlogBySlug: protectedProcedure
+  updateBlogBySlug: adminProcedure
     .input(z.object({
       slug: z.string().min(1, 'Slug is required'),
       title: z.string().min(1, 'Title is required').max(200, 'Title is too long').optional(),
@@ -239,7 +245,7 @@ export const appRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       const { slug, ...updates } = input
-      const blog = await BlogService.updateBySlug(slug, ctx.user.userId, updates)
+      const blog = await BlogService.updateBySlug(slug, ctx.user.userId, updates, true)
 
       return {
         success: true,
@@ -251,12 +257,12 @@ export const appRouter = router({
   /**
    * 切换博客可见性（需要认证）
    */
-  toggleBlogVisibility: protectedProcedure
+  toggleBlogVisibility: adminProcedure
     .input(z.object({
       blogId: z.string().min(1, 'Blog ID is required'),
     }))
     .mutation(async ({ input, ctx }) => {
-      const blog = await BlogService.toggleVisibility(input.blogId, ctx.user.userId)
+      const blog = await BlogService.toggleVisibility(input.blogId, ctx.user.userId, true)
 
       return {
         success: true,
@@ -268,12 +274,12 @@ export const appRouter = router({
   /**
    * 删除博客（需要认证）
    */
-  deleteBlog: protectedProcedure
+  deleteBlog: adminProcedure
     .input(z.object({
       blogId: z.string().min(1, 'Blog ID is required'),
     }))
     .mutation(async ({ input, ctx }) => {
-      await BlogService.delete(input.blogId, ctx.user.userId)
+      await BlogService.delete(input.blogId, ctx.user.userId, true)
 
       return {
         success: true,
@@ -282,36 +288,36 @@ export const appRouter = router({
     }),
 
   /**
-   * 获取我的博客列表（需要认证）
+   * 管理员内容列表
    */
-  getMyBlogs: protectedProcedure
+  getMyBlogs: adminProcedure
     .input(z.object({
       page: z.number().int().positive().default(1),
       limit: z.number().int().positive().max(100).default(20),
     }).optional())
-    .query(async ({ ctx, input }) => {
+    .query(async ({ input }) => {
       const page = input?.page || 1
       const limit = input?.limit || 20
-      return await BlogService.findByAuthorId(ctx.user.userId, page, limit)
+      return await BlogService.findAll(page, limit)
     }),
 
   /**
-   * 获取我的博客统计信息（需要认证）
+   * 管理员内容统计
    */
-  getMyBlogStats: protectedProcedure
-    .query(async ({ ctx }) => {
-      return await BlogService.getStatsByAuthorId(ctx.user.userId)
+  getMyBlogStats: adminProcedure
+    .query(async () => {
+      return await BlogService.getStatsAll()
     }),
 
   /**
-   * 根据ID获取博客（需要认证）
+   * 管理员根据ID获取博客
    */
-  getBlogById: protectedProcedure
+  getBlogById: adminProcedure
     .input(z.object({
       blogId: z.string().min(1, 'Blog ID is required'),
     }))
     .query(async ({ input, ctx }) => {
-      const blog = await BlogService.findById(input.blogId, ctx.user.userId)
+      const blog = await BlogService.findById(input.blogId, ctx.user.userId, true)
       if (!blog) {
         throw new Error('Blog not found')
       }
@@ -319,14 +325,14 @@ export const appRouter = router({
     }),
 
   /**
-   * 根据 slug 获取博客（需要认证）
+   * 管理员根据 slug 获取博客
    */
-  getBlogBySlug: protectedProcedure
+  getBlogBySlug: adminProcedure
     .input(z.object({
       slug: z.string().min(1, 'Slug is required'),
     }))
     .query(async ({ input, ctx }) => {
-      const blog = await BlogService.findBySlug(input.slug, ctx.user.userId)
+      const blog = await BlogService.findBySlug(input.slug, ctx.user.userId, true)
       if (!blog) {
         throw new Error('Blog not found')
       }
@@ -334,9 +340,9 @@ export const appRouter = router({
     }),
 
   /**
-   * 搜索公开博客（需要认证）
+   * 搜索公开博客（公开接口，无需登录）
    */
-  searchPublicBlogs: protectedProcedure
+  searchPublicBlogs: publicProcedure
     .input(z.object({
       query: z.string().min(1, 'Search query is required'),
       page: z.number().int().positive().default(1),
@@ -347,9 +353,9 @@ export const appRouter = router({
     }),
 
   /**
-   * 获取所有公开博客（需要认证）
+   * 获取所有公开博客（公开接口，无需登录）
    */
-  getPublicBlogs: protectedProcedure
+  getPublicBlogs: publicProcedure
     .input(z.object({
       page: z.number().int().positive().default(1),
       limit: z.number().int().positive().max(100).default(20),

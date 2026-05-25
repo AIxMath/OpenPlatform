@@ -23,7 +23,6 @@ function handleCreateBlog() {
     <!-- 导航链接 -->
     <div class="nav-links">
       <a
-        v-if="authStore.user"
         href="/dash/explore"
         class="nav-link"
         :class="{ active: isActive('/dash/explore') }"
@@ -33,17 +32,17 @@ function handleCreateBlog() {
       </a>
 
       <a
-        v-if="authStore.user"
+        v-if="authStore.isAdmin"
         href="/dash/my-blogs"
         class="nav-link"
         :class="{ active: isActive('/dash/my-blogs') }"
       >
         <div class="i-material-symbols:article-outline w-4.5 h-4.5" />
-        <span>我的博客</span>
+        <span>内容管理</span>
       </a>
 
       <button
-        v-if="authStore.user && !isActive('/dash/edit')"
+        v-if="authStore.isAdmin && !isActive('/dash/edit')"
         class="nav-link nav-link-primary"
         @click="handleCreateBlog"
       >
@@ -53,9 +52,9 @@ function handleCreateBlog() {
     </div>
 
     <!-- 用户按钮 -->
-    <div class="user-section">
+    <div v-if="authStore.isAdmin" class="user-section">
       <!-- 已登录状态 -->
-      <div v-if="authStore.user" class="user-menu">
+      <div class="user-menu">
         <a
           href="/dash/user"
           class="user-button"
@@ -65,20 +64,10 @@ function handleCreateBlog() {
           <span>{{ authStore.user.username }}</span>
         </a>
       </div>
-
-      <!-- 未登录状态 -->
-      <div v-else class="auth-buttons">
-        <a href="/dash/login" class="login-button">
-          登录
-        </a>
-        <a href="/dash/register" class="register-button">
-          注册
-        </a>
-      </div>
     </div>
 
     <!-- 创建博客对话框 -->
-    <CreateBlogDialog v-model:show="showCreateDialog" />
+    <CreateBlogDialog v-if="authStore.isAdmin" v-model:show="showCreateDialog" />
   </div>
 </template>
 

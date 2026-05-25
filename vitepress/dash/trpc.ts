@@ -4,7 +4,7 @@ import { createTRPCClient, httpBatchLink } from '@trpc/client'
 export const trpc = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
-      url: 'https://aixmath.org/api',
+      url: '/api',
       headers() {
         const token = localStorage.getItem('auth_token')
         return token ? { Authorization: `Bearer ${token}` } : {}
