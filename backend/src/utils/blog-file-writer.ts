@@ -93,22 +93,59 @@ export function titleToSlug(title: string): string {
 
 /**
  * 获取博客文件路径
- * 普通用户: vitepress/content/{username}/blog/{slug}.md
- * admin 用户: vitepress/content/{slug}.md
+ * 博客现在统一写入 vitepress/content/blog/{slug}.md。
+ * 旧的 vitepress/content/{username}/blog/{slug}.md 会在更新时清理。
  */
 export function getBlogFilePath(username: string, slug: string): string {
   const vitepressContentDir = path.join(process.cwd(), '..', 'vitepress', 'content')
+  return path.join(vitepressContentDir, 'blog', `${slug}.md`)
+}
 
-  // 将用户名转为小写
+function getLegacyBlogFilePath(username: string, slug: string): string {
+  const vitepressContentDir = path.join(process.cwd(), '..', 'vitepress', 'content')
   const lowercaseUsername = username.toLowerCase()
+  return path.join(vitepressContentDir, lowercaseUsername, 'blog', `${slug}.md`)
+}
 
-  if (lowercaseUsername === 'admin') {
-    // admin 用户的博客直接放在 content 根目录
-    return path.join(vitepressContentDir, `${slug}.md`)
+function getAllLegacyBlogFilePaths(slug: string): string[] {
+  const vitepressContentDir = path.join(process.cwd(), '..', 'vitepress', 'content')
+
+  if (!fs.existsSync(vitepressContentDir)) {
+    return []
   }
-  else {
-    // 普通用户的博客放在 {username}/blog/ 目录下（用户名小写）
-    return path.join(vitepressContentDir, lowercaseUsername, 'blog', `${slug}.md`)
+
+  return fs.readdirSync(vitepressContentDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name !== 'blog')
+    .map(entry => path.join(vitepressContentDir, entry.name, 'blog', `${slug}.md`))
+}
+
+function blogFileExists(username: string, slug: string): boolean {
+  if (fs.existsSync(getBlogFilePath(username, slug)))
+    return true
+
+  return getAllLegacyBlogFilePaths(slug).some(filePath => fs.existsSync(filePath))
+}
+
+function deleteIfExists(filePath: string) {
+  if (!fs.existsSync(filePath))
+    return
+
+  try {
+    fs.unlinkSync(filePath)
+  }
+  catch (error) {
+    console.error('Failed to delete blog file:', error)
+  }
+}
+
+function deleteLegacyBlogFiles(username: string, slug: string) {
+  const legacyPaths = new Set([
+    getLegacyBlogFilePath(username, slug),
+    ...getAllLegacyBlogFilePaths(slug),
+  ])
+
+  for (const filePath of legacyPaths) {
+    deleteIfExists(filePath)
   }
 }
 
@@ -125,7 +162,7 @@ function generateUniqueSlug(username: string, baseSlug: string, oldSlug?: string
   }
 
   // 检查文件是否存在，如果存在则添加数字后缀
-  while (fs.existsSync(getBlogFilePath(username, slug))) {
+  while (blogFileExists(username, slug)) {
     // 如果这个文件是旧文件（更新操作），则跳过
     if (oldSlug && oldSlug === slug) {
       break
@@ -161,18 +198,12 @@ export async function writeBlogToFile(
 
   // 如果标题改变了（slug 改变），删除旧文件
   if (oldSlug && oldSlug !== slug) {
-    const oldFilePath = getBlogFilePath(username, oldSlug)
-    if (fs.existsSync(oldFilePath)) {
-      try {
-        fs.unlinkSync(oldFilePath)
-      }
-      catch (error) {
-        console.error('Failed to delete old blog file:', error)
-      }
-    }
+    deleteIfExists(getBlogFilePath(username, oldSlug))
+    deleteLegacyBlogFiles(username, oldSlug)
   }
 
   fs.writeFileSync(filePath, content, 'utf-8')
+  deleteLegacyBlogFiles(username, slug)
 
   // 触发部署（异步，不等待完成）
   triggerDeploy().catch(err => console.error('Failed to trigger deploy:', err))
@@ -185,10 +216,12 @@ export async function writeBlogToFile(
  */
 export async function deleteBlogFile(username: string, slug: string): Promise<void> {
   const filePath = getBlogFilePath(username, slug)
+  const legacyFilePaths = getAllLegacyBlogFilePaths(slug).filter(filePath => fs.existsSync(filePath))
 
-  if (fs.existsSync(filePath)) {
+  if (fs.existsSync(filePath) || legacyFilePaths.length > 0) {
     try {
-      fs.unlinkSync(filePath)
+      deleteIfExists(filePath)
+      deleteLegacyBlogFiles(username, slug)
 
       // 触发部署（异步，不等待完成）
       triggerDeploy().catch(err => console.error('Failed to trigger deploy:', err))

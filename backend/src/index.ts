@@ -46,11 +46,17 @@ function getContentType(filePath: string): string {
 
 /**
  * 从URL解析博客信息
- * 返回: { username, slug } 或 null（如果不是博客URL）
+ * 返回: { username?, slug } 或 null（如果不是博客URL）
  */
-function parseBlogUrl(url: string): { username: string, slug: string } | null {
+function parseBlogUrl(url: string): { username?: string, slug: string } | null {
   // 移除查询参数和哈希
   const cleanUrl = url.split('?')[0].split('#')[0]
+
+  // 新的 canonical 路径: /blog/{slug}.html
+  const canonicalBlogMatch = cleanUrl.match(/^\/blog\/([^/]+)\.html$/)
+  if (canonicalBlogMatch) {
+    return { slug: canonicalBlogMatch[1] }
+  }
 
   // 匹配 /{username}/blog/{slug}.html 格式
   const userBlogMatch = cleanUrl.match(/^\/([^/]+)\/blog\/([^/]+)\.html$/)
@@ -66,6 +72,12 @@ function parseBlogUrl(url: string): { username: string, slug: string } | null {
   }
 
   // 匹配博客相关的 JavaScript 文件
+  // 格式: /assets/blog_{slug}.md.{hash}.js 或 .lean.js
+  const canonicalJsBlogMatch = cleanUrl.match(/^\/assets\/blog_([^.]+)\.md\.[^.]+(?:\.lean)?\.js$/)
+  if (canonicalJsBlogMatch) {
+    return { slug: canonicalJsBlogMatch[1] }
+  }
+
   // 格式: /assets/{username}_blog_{slug}.md.{hash}.js 或 .lean.js
   const jsBlogMatch = cleanUrl.match(/^\/assets\/([^_]+)_blog_([^.]+)\.md\.[^.]+(?:\.lean)?\.js$/)
   if (jsBlogMatch) {
@@ -99,7 +111,6 @@ function extractTokenFromCookie(cookieHeader?: string): string | null {
  * 返回 true 表示允许访问，false 表示拒绝（应返回404）
  */
 async function checkBlogAccess(
-  username: string,
   slug: string,
   req: http.IncomingMessage,
 ): Promise<boolean> {
@@ -107,7 +118,6 @@ async function checkBlogAccess(
     // 从数据库查找博客
     const blogsCollection = db.collection('blogs')
     const blog = await blogsCollection.findOne({
-      authorName: new RegExp(`^${username}$`, 'i'), // 不区分大小写
       slug,
     })
 
@@ -208,6 +218,13 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
   // 移除查询参数和哈希
   url = url.split('?')[0].split('#')[0]
 
+  const legacyBlogMatch = url.match(/^\/([^/]+)\/blog\/([^/.]+)(?:\.html)?$/)
+  if (legacyBlogMatch) {
+    res.writeHead(301, { Location: `/blog/${legacyBlogMatch[2]}` })
+    res.end()
+    return
+  }
+
   if (url === '/' || url === '') {
     const indexPath = path.join(staticDir, 'index.html')
     if (fs.existsSync(indexPath)) {
@@ -233,7 +250,7 @@ async function serveStatic(req: http.IncomingMessage, res: http.ServerResponse) 
   }
 
   if (blogInfo) {
-    const hasAccess = await checkBlogAccess(blogInfo.username, blogInfo.slug, req)
+    const hasAccess = await checkBlogAccess(blogInfo.slug, req)
 
     if (!hasAccess) {
       // 未授权访问私有博客，返回404（不暴露博客是否存在）

@@ -150,17 +150,7 @@ function handleEdit(blog: Blog) {
 
 // 查看文章
 function handleView(blog: Blog) {
-  const username = authStore.user?.username || blog.authorName
-  const lowercaseUsername = username.toLowerCase()
-
-  if (lowercaseUsername === 'admin') {
-    // admin 用户的博客路径
-    window.open(`/${blog.slug}`, '_blank')
-  }
-  else {
-    // 普通用户的博客路径
-    window.open(`/${lowercaseUsername}/blog/${blog.slug}`, '_blank')
-  }
+  window.open(`/blog/${blog.slug}`, '_blank')
 }
 
 // 切换可见性

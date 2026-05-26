@@ -176,19 +176,26 @@ function getContentPreview(content: string) {
   return plainText.substring(0, 150) + (plainText.length > 150 ? '...' : '')
 }
 
+function getFrontMatterField(content: string, field: string) {
+  if (!content.startsWith('---'))
+    return ''
+
+  const endOfYaml = content.indexOf('---', 3)
+  if (endOfYaml === -1)
+    return ''
+
+  const frontMatter = content.substring(3, endOfYaml)
+  const match = frontMatter.match(new RegExp(`^${field}:\\s*["']?(.+?)["']?\\s*$`, 'm'))
+  return match?.[1]?.trim() || ''
+}
+
+function getDisplayAuthor(blog: Blog) {
+  return getFrontMatterField(blog.content, 'author') || blog.authorName
+}
+
 // 查看文章
 function handleView(blog: Blog) {
-  const username = blog.authorName
-  const lowercaseUsername = username.toLowerCase()
-
-  if (lowercaseUsername === 'admin') {
-    // admin 用户的博客路径
-    window.open(`/${blog.slug}`, '_blank')
-  }
-  else {
-    // 普通用户的博客路径
-    window.open(`/${lowercaseUsername}/blog/${blog.slug}`, '_blank')
-  }
+  window.open(`/blog/${blog.slug}`, '_blank')
 }
 
 onMounted(() => {
@@ -296,7 +303,7 @@ onMounted(() => {
               <div class="flex items-center gap-2 mb-3">
                 <div class="i-material-symbols:person-outline w-4 h-4 text-gray-500" />
                 <span class="text-sm text-gray-600">
-                  {{ blog.authorName }}
+                  {{ getDisplayAuthor(blog) }}
                 </span>
               </div>
 

@@ -16,6 +16,11 @@ export default defineConfig({
     ],
   },
   rewrites(id) {
+    const legacyBlogMatch = id.match(/^content\/([^/]+)\/blog\/([^/]+\.md)$/)
+    if (legacyBlogMatch) {
+      return `blog/${legacyBlogMatch[2]}`
+    }
+
     if (id.startsWith('content/')) {
       return id.slice('content/'.length)
     }

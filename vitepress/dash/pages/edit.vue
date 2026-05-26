@@ -378,15 +378,7 @@ async function handleSaveAndBack() {
 async function handleSaveAndPreview() {
   const success = await handleSave()
   if (success && blogData.value) {
-    const username = authStore.user?.username || blogData.value.authorName
-    const lowercaseUsername = username.toLowerCase()
-
-    if (lowercaseUsername === 'admin') {
-      window.open(`/${blogData.value.slug}`, '_blank')
-    }
-    else {
-      window.open(`/${lowercaseUsername}/blog/${blogData.value.slug}`, '_blank')
-    }
+    window.open(`/blog/${blogData.value.slug}`, '_blank')
   }
 }
 
